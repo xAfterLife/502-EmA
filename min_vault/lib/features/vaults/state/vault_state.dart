@@ -7,22 +7,26 @@ sealed class VaultState extends Equatable {
 
 final class VaultInitial extends VaultState {
   const VaultInitial();
-  @override List<Object?> get props => [];
+  @override
+  List<Object?> get props => [];
 }
 
 final class VaultLoading extends VaultState {
   const VaultLoading();
-  @override List<Object?> get props => [];
+  @override
+  List<Object?> get props => [];
 }
 
 final class VaultLoaded extends VaultState {
   const VaultLoaded(this.vaults);
   final List<Vault> vaults;
-  @override List<Object?> get props => [vaults];
+  @override
+  List<Object?> get props => [vaults];
 }
 
 final class VaultError extends VaultState {
   const VaultError(this.message);
   final String message;
-  @override List<Object?> get props => [message];
+  @override
+  List<Object?> get props => [message];
 }

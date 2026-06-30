@@ -16,22 +16,37 @@ class VaultRepository {
 
   Future<List<Vault>> loadVaults() async {
     final dir = await _vaultsDir;
-    final entries = await dir.list().toList();
 
-    final vaults = <Vault>[];
-    for (final entry in entries) {
-      if (entry is! Directory) continue;
-      final folderName = entry.uri.pathSegments
-          .lastWhere((s) => s.isNotEmpty);
-      try {
-        final name = await VaultFolderService.folderToVaultName(folderName);
-        final itemCount = await entry.list().length;
-        vaults.add(Vault(name: name, folderName: folderName, itemCount: itemCount));
-      } catch (_) {
-        // Corrupt / foreign folder — skip silently
+    final futures = <Future<Vault?>>[];
+
+    await for (final entry in dir.list()) {
+      if (entry is Directory) {
+        futures.add(_loadVault(entry));
       }
     }
-    return vaults;
+
+    final result = await Future.wait(futures);
+    return result.whereType<Vault>().toList();
+  }
+
+  Future<Vault?> _loadVault(Directory entry) async {
+    final folderName = entry.uri.pathSegments.lastWhere((s) => s.isNotEmpty);
+
+    try {
+      final nameFuture = VaultFolderService.folderToVaultName(folderName);
+
+      final countFuture = entry.list().length;
+
+      final results = await Future.wait([nameFuture, countFuture]);
+
+      return Vault(
+        name: results[0] as String,
+        folderName: folderName,
+        itemCount: results[1] as int,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<Vault> createVault(String name) async {

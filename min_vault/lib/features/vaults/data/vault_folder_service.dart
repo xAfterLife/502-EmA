@@ -14,22 +14,25 @@ class VaultFolderService {
 
   static const int _pbkdf2Iterations = 600000;
 
-  static SecretKey? _cachedKey;
+  static Future<SecretKey>? _keyFuture;
   static final AesGcm _aesGcm = AesGcm.with256bits();
   static final Sha256 _sha256 = Sha256();
 
-  static Future<SecretKey> _getKey() async {
-    if (_cachedKey != null) return _cachedKey!;
+  static Future<SecretKey> _getKey() {
+    return _keyFuture ??= _deriveKey();
+  }
+
+  static Future<SecretKey> _deriveKey() async {
     final pbkdf2 = Pbkdf2(
       macAlgorithm: Hmac.sha256(),
       iterations: _pbkdf2Iterations,
       bits: 256,
     );
-    _cachedKey = await pbkdf2.deriveKey(
+
+    return pbkdf2.deriveKey(
       secretKey: SecretKey(utf8.encode(_masterPassword)),
       nonce: _salt,
     );
-    return _cachedKey!;
   }
 
   static Future<String> vaultNameToFolder(String vaultName) async {
@@ -83,5 +86,5 @@ class VaultFolderService {
     }
   }
 
-  static void clearCache() => _cachedKey = null;
+  static void clearCache() => _keyFuture = null;
 }
