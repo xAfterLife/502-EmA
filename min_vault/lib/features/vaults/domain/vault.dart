@@ -11,7 +11,12 @@ class Vault extends Equatable {
     required this.itemCount,
   });
 
-  Vault copyWith({String? name, String? folderName, int? itemCount}) => Vault(
+  Vault copyWith({
+    String? id,
+    String? name,
+    String? folderName,
+    int? itemCount,
+  }) => Vault(
     name: name ?? this.name,
     folderName: folderName ?? this.folderName,
     itemCount: itemCount ?? this.itemCount,
