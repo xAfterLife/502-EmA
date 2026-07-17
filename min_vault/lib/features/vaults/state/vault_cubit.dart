@@ -1,11 +1,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/features/vaults/data/vault_repository.dart';
 import 'package:min_vault/features/vaults/state/vault_state.dart';
+import 'package:uuid/uuid.dart';
 
 class VaultCubit extends Cubit<VaultState> {
-  VaultCubit() : super(const VaultInitial());
+  VaultCubit({required VaultRepository repository})
+    : _repo = repository,
+      super(const VaultInitial());
 
-  final _repo = VaultRepository.instance;
+  final VaultRepository _repo;
+  static const _uuid = Uuid();
 
   Future<void> loadVaults() async {
     emit(const VaultLoading());
@@ -19,7 +23,8 @@ class VaultCubit extends Cubit<VaultState> {
 
   Future<void> createVault(String name) async {
     try {
-      await _repo.createVault(name);
+      final id = _uuid.v4();
+      await _repo.createVault(name, id: id);
       await loadVaults();
     } catch (e) {
       emit(VaultError(e.toString()));

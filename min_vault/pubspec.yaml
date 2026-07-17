@@ -38,8 +38,11 @@ dependencies:
   go_router: ^17.2.3
   equatable: ^2.0.8
   cryptography: ^2.9.0
-  cryptography_flutter: ^2.3.4
   path_provider: ^2.1.5
+  path: ^1.9.1
+  flutter_secure_storage: ^10.3.1
+  get_it: ^9.2.1
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:
