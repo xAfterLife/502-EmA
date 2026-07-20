@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:min_vault/features/auth/state/auth_cubit.dart';
 import 'package:min_vault/features/auth/state/auth_state.dart';
 import 'package:min_vault/features/vaults/presentation/vault_list_screen.dart';
+import 'package:min_vault/features/auth/presentation/setup_screen.dart';
+import 'package:min_vault/features/auth/presentation/unlock_screen.dart';
 
 late final GoRouter appRouter;
 
@@ -45,10 +47,8 @@ GoRouter _createRouter(AuthCubit authCubit) {
         path: '/vault_list',
         builder: (ctx, _) => const VaultListScreen(),
       ),
-      // Bis zur implementierung der Screens als Platzhalter
-      GoRoute(path: '/setup', builder: (ctx, _) => const VaultListScreen()),
-      // Bis zur implementierung der Screens als Platzhalter
-      GoRoute(path: '/auth', builder: (ctx, _) => const VaultListScreen()),
+      GoRoute(path: '/setup', builder: (ctx, _) => const SetupScreen()),
+      GoRoute(path: '/auth', builder: (ctx, _) => const UnlockScreen()),
     ],
     errorBuilder: (ctx, state) =>
         Scaffold(body: Center(child: Text('Error: ${state.error}'))),
