@@ -15,7 +15,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
 
-  final authCubit = AuthCubit(masterKeyService: getIt<KeyService>());
+  final authCubit = AuthCubit(keyService: getIt<KeyService>());
   final vaultCubit = VaultCubit(repository: getIt<VaultRepository>());
   final themeCubit = ThemeCubit(prefs: getIt<SharedPreferences>());
 
