@@ -111,6 +111,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: 'Master Password',
+                      helperText: 'Minimum 8 characters',
                       errorText: _passwordError,
                       prefixIcon: const Icon(Icons.lock_rounded),
                       filled: true,
