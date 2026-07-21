@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/app_router.dart';
 import 'package:min_vault/core/di/injection.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
-import 'package:min_vault/features/auth/data/master_key_service.dart';
+import 'package:min_vault/features/auth/data/key_service.dart';
 import 'package:min_vault/features/auth/state/auth_cubit.dart';
 import 'package:min_vault/features/auth/state/auth_state.dart';
 import 'package:min_vault/features/vaults/data/vault_repository.dart';
@@ -13,7 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
 
-  final authCubit = AuthCubit(masterKeyService: getIt<MasterKeyService>());
+  final authCubit = AuthCubit(keyService: getIt<KeyService>());
   final vaultCubit = VaultCubit(repository: getIt<VaultRepository>());
 
   await authCubit.checkAuthStatus();

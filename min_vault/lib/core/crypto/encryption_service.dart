@@ -14,13 +14,29 @@ class EncryptionService {
 
   static final _algorithm = Xchacha20.poly1305Aead();
 
-  //TODO: Derive Data Encryption Key with master password hash from Key Store via a Key Service/Manager
-  static SecretKey _dataEncryptionKey = SecretKey([]);
+  SecretKey? _dataEncryptionKey;
 
-  //TODO: Remove/change for release
-  /// This function is used only for testing purposes to get a placeholder key and should be removed/change for release.
-  static void setKey() async {
-    _dataEncryptionKey = await _algorithm.newSecretKey();
+  bool get hasDataKey => _dataEncryptionKey != null;
+
+  Future<SecretKey> generateNewKey() {
+    return _algorithm.newSecretKey();
+  }
+
+  void setDataKey(SecretKey key) async {
+    _dataEncryptionKey = key;
+  }
+
+  void clearDataKey() async {
+    _dataEncryptionKey = null;
+  }
+
+  Future<Uint8List> exportDataKeyBytes() async => 
+      Uint8List.fromList(await _requireDataKey().extractBytes());
+
+  SecretKey _requireDataKey() {
+    final key = _dataEncryptionKey;
+    if (key == null) throw StateError('Vault locked: no data key set.');
+    return key;
   }
 
   Future<Uint8List> encrypt(
@@ -55,12 +71,12 @@ class EncryptionService {
 
   /// This function takes a file path as an argument and encrypts the file with the Xchacha20-poly1305
   /// algorithm. After encryption you will have the original file and an encrypted file ending with .crypt .
-  static Future<void> encryptFile(String filePath) async {
+  Future<void> encryptFile(String filePath) async {
     try {
       // Input setup
       final inputFile = File(filePath);
       if (!await inputFile.exists()) {
-        throw Exception("File does not exist.");
+        throw Exception('File does not exist.');
       }
 
       final String fileName = basename(filePath);
@@ -76,7 +92,7 @@ class EncryptionService {
       // Data encryption
       final secretBox = await _algorithm.encrypt(
         fileBytes,
-        secretKey: _dataEncryptionKey,
+        secretKey: _requireDataKey(),
         nonce: nonce,
         aad: additionalData,
       );
@@ -85,7 +101,7 @@ class EncryptionService {
 
       // Output setup
       final String outputFilePath = dirname(filePath);
-      final outputFile = File("$outputFilePath/$fileName.crypt");
+      final outputFile = File('$outputFilePath/$fileName.crypt');
 
       await outputFile.writeAsBytes(bytes);
 
@@ -99,44 +115,51 @@ class EncryptionService {
 
   /// This function takes a file path as an argument and decrypts the file with the Xchacha20-poly1305
   /// algorithm. After decryption you will have the encrypted file and an decrypted file ending with .crypt .
-  static Future<void> decryptFile(String filePath) async {
-    // Input setup
-    final inputFile = File(filePath);
-    if (!await inputFile.exists()) {
-      throw Exception("File does not exist.");
+  Future<void> decryptFile(String filePath) async {
+    try {
+      // Input setup
+      final inputFile = File(filePath);
+      if (!await inputFile.exists()) {
+        throw Exception("File does not exist.");
+      }
+
+      Uint8List fileBytes = await inputFile.readAsBytes();
+
+      final secretBox = SecretBox.fromConcatenation(
+        fileBytes,
+        nonceLength: _algorithm.nonceLength,
+        macLength: _algorithm.macAlgorithm.macLength,
+      );
+
+      // Output setup
+      final String fileName = basename(filePath);
+
+      int lastIndex = fileName.lastIndexOf('.');
+      // If the character exists, take the substring after it including the character
+      String outputFileName = lastIndex != -1
+          ? fileName.substring(0, lastIndex)
+          : fileName;
+
+      final String outputFilePath = dirname(filePath);
+
+      // Data decryption
+      final String fileExtension = extension(outputFileName);
+      final List<int> additionalData = utf8.encode(fileExtension);
+
+      final decryptedBytes = await _algorithm.decrypt(
+        secretBox,
+        secretKey: _requireDataKey(),
+        aad: additionalData,
+      );
+
+      // Write decrypted file
+      final outputFile = File("$outputFilePath/$outputFileName");
+      await outputFile.writeAsBytes(decryptedBytes);
+      
+    } catch (err) {
+      if (kDebugMode) {
+        print('Error in decryptFile(): $err');
+      }
     }
-
-    Uint8List fileBytes = await inputFile.readAsBytes();
-
-    final secretBox = SecretBox.fromConcatenation(
-      fileBytes,
-      nonceLength: _algorithm.nonceLength,
-      macLength: _algorithm.macAlgorithm.macLength,
-    );
-
-    // Output setup
-    final String fileName = basename(filePath);
-
-    int lastIndex = fileName.lastIndexOf('.');
-    // If the character exists, take the substring after it including the character
-    String outputFileName = lastIndex != -1
-        ? fileName.substring(0, lastIndex)
-        : fileName;
-
-    final String outputFilePath = dirname(filePath);
-
-    // Data decryption
-    final String fileExtension = extension(outputFileName);
-    final List<int> additionalData = utf8.encode(fileExtension);
-
-    final decryptedBytes = await _algorithm.decrypt(
-      secretBox,
-      secretKey: _dataEncryptionKey,
-      aad: additionalData,
-    );
-
-    // Write decrypted file
-    final outputFile = File("$outputFilePath/$outputFileName");
-    await outputFile.writeAsBytes(decryptedBytes);
   }
 }
