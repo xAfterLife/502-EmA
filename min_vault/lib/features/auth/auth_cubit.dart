@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:min_vault/features/auth/data/key_service.dart';
-import 'package:min_vault/features/auth/state/auth_state.dart';
+import 'package:min_vault/features/auth/key_service.dart';
+import 'package:min_vault/features/auth/auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit({required this._keyService}) : super(const AuthChecking());
