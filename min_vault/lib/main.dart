@@ -4,7 +4,7 @@ import 'package:min_vault/core/app_router.dart';
 import 'package:min_vault/core/di/injection.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 import 'package:min_vault/core/theme/theme_cubit.dart';
-import 'package:min_vault/features/auth/master_key_service.dart';
+import 'package:min_vault/features/auth/key_service.dart';
 import 'package:min_vault/features/auth/auth_cubit.dart';
 import 'package:min_vault/features/auth/auth_state.dart';
 import 'package:min_vault/features/vaults/vault_repository.dart';
@@ -15,7 +15,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
 
-  final authCubit = AuthCubit(masterKeyService: getIt<MasterKeyService>());
+  final authCubit = AuthCubit(masterKeyService: getIt<KeyService>());
   final vaultCubit = VaultCubit(repository: getIt<VaultRepository>());
   final themeCubit = ThemeCubit(prefs: getIt<SharedPreferences>());
 
