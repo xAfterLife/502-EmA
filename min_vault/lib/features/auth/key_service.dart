@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:local_auth/local_auth.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:min_vault/core/crypto/encryption_service.dart';
 import 'package:min_vault/features/auth/auth_storage_service.dart';
@@ -7,10 +8,15 @@ import 'package:min_vault/features/auth/auth_storage_service.dart';
 /// Derives an AES-256 key from a master password and provides
 /// a verifier so the password can be checked without storing it.
 class KeyService {
-  KeyService({required this._storage, required this._encryptionService});
+  KeyService({
+    required this._storage,
+    required this._encryptionService,
+    required this._localAuth,
+  });
 
   final AuthStorageService _storage;
   final EncryptionService _encryptionService;
+  final LocalAuthentication _localAuth;
 
   static const String _verifierKey = 'auth_verifier';
   static const String _biometricKey = 'auth_biometric_key';
@@ -89,6 +95,13 @@ class KeyService {
     if (!_encryptionService.hasDataKey) {
       throw StateError('No unlocked key to cache for biometric.');
     }
+
+    final confirmed = await _localAuth.authenticate(
+      localizedReason: 'Confirm your identity to enable biometric unlock',
+      biometricOnly: true,
+    );
+    if (!confirmed) throw StateError('Biometric confirmation failed.');
+
     // Export the key bytes and store them.
     final dekBytes = await _encryptionService.exportDataKeyBytes();
     await _storage.writeBytes(key: _biometricKey, value: dekBytes);
@@ -100,8 +113,21 @@ class KeyService {
     await _storage.write(key: _biometricEnabledKey, value: 'false');
   }
 
-  /// Restore the AES key from biometric-secured storage.
   Future<void> unlockWithBiometric() async {
+    final canAuthenticate =
+        await _localAuth.canCheckBiometrics ||
+        await _localAuth.isDeviceSupported();
+    if (!canAuthenticate) {
+      throw StateError('Biometrics not available on this device.');
+    }
+
+    final confirmed = await _localAuth.authenticate(
+      localizedReason: 'Unlock MinVault',
+      biometricOnly: true,
+    );
+    if (!confirmed) throw StateError('Biometric authentication failed.');
+
+    // Only read the key AFTER successful biometric scan
     final dekBytes = await _storage.readBytes(key: _biometricKey);
     if (dekBytes == null) {
       throw StateError('No biometric key stored.');

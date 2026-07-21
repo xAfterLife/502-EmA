@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:min_vault/core/crypto/encryption_service.dart';
 import 'package:min_vault/features/auth/auth_storage_service.dart';
 import 'package:min_vault/features/auth/key_service.dart';
@@ -20,12 +21,15 @@ Future<void> configureDependencies() async {
     () => SharedPreferences.getInstance(),
   );
 
+  getIt.registerLazySingleton<LocalAuthentication>(() => LocalAuthentication());
+
   await getIt.allReady();
 
   getIt.registerSingleton<KeyService>(
     KeyService(
       storage: getIt<AuthStorageService>(),
       encryptionService: getIt<EncryptionService>(),
+      localAuth: getIt<LocalAuthentication>(),
     ),
   );
 

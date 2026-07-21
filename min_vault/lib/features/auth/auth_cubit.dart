@@ -65,4 +65,12 @@ class AuthCubit extends Cubit<AuthState> {
     final bioEnabled = await _keyService.isBiometricEnabled();
     emit(AuthUnlockRequired(biometricAvailable: bioEnabled));
   }
+
+  Future<bool> isBiometricEnabled() => _keyService.isBiometricEnabled();
+
+  Future<void> setBiometricEnabled(bool enabled) {
+    return enabled
+        ? _keyService.enableBiometric()
+        : _keyService.disableBiometric();
+  }
 }
