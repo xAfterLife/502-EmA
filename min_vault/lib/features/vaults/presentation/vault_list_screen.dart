@@ -151,7 +151,7 @@ class _VaultCard extends StatelessWidget {
               children: [
                 Text(
                   vault.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimaryColor,
@@ -160,7 +160,7 @@ class _VaultCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${vault.itemCount} Items',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     color: AppTheme.textSecondaryColor,
                   ),
@@ -170,7 +170,7 @@ class _VaultCard extends StatelessWidget {
           ),
           IconButton(
             onPressed: () => _confirmDelete(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.delete_forever_rounded,
               color: AppTheme.textSecondaryColor,
             ),
@@ -214,7 +214,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -307,7 +307,7 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
             ),
           ),
           const SizedBox(height: 24),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
               'New Vault',
@@ -354,7 +354,7 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
                 ),
               ),
               child: _isCreating
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(

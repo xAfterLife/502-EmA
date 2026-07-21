@@ -84,7 +84,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     color: AppTheme.accentColor,
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Create Master Password',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -166,7 +166,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       ),
                     ),
                     child: _isCreating
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(

@@ -70,7 +70,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                     color: AppTheme.accentColor,
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Unlock MinVault',
                     textAlign: TextAlign.center,
                     style: TextStyle(
