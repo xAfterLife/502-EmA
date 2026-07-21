@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
-import 'package:min_vault/features/auth/state/auth_cubit.dart';
-import 'package:min_vault/features/auth/state/auth_state.dart';
+import 'package:min_vault/features/auth/auth_cubit.dart';
+import 'package:min_vault/features/auth/auth_state.dart';
 
 class UnlockScreen extends StatefulWidget {
   const UnlockScreen({super.key});
@@ -91,6 +91,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                   const SizedBox(height: 40),
                   TextField(
                     controller: _passwordController,
+                    style: TextStyle(color: AppTheme.textPrimaryColor),
                     obscureText: _obscured,
                     autofocus: true,
                     textInputAction: TextInputAction.done,
@@ -126,7 +127,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                       elevation: 0,
                       minimumSize: const Size.fromHeight(54),
                       backgroundColor: AppTheme.accentColor,
-                      foregroundColor: AppTheme.surfaceColor,
+                      foregroundColor: AppTheme.onAccentColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusL),
                       ),

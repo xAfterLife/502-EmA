@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
-import 'package:min_vault/features/vaults/domain/vault.dart';
-import 'package:min_vault/features/vaults/state/vault_cubit.dart';
-import 'package:min_vault/features/vaults/state/vault_state.dart';
+import 'package:min_vault/features/vaults/vault.dart';
+import 'package:min_vault/features/vaults/vault_cubit.dart';
+import 'package:min_vault/features/vaults/vault_state.dart';
 
 class VaultListScreen extends StatefulWidget {
   const VaultListScreen({super.key});
@@ -68,7 +68,7 @@ class _VaultListScreenState extends State<VaultListScreen> {
                   elevation: 0,
                   minimumSize: const Size.fromHeight(56),
                   backgroundColor: AppTheme.accentColor,
-                  foregroundColor: AppTheme.surfaceColor,
+                  foregroundColor: AppTheme.onAccentColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusL),
                   ),
@@ -321,6 +321,7 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
+            style: TextStyle(color: AppTheme.textPrimaryColor),
             autofocus: true,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _submit(),
@@ -345,7 +346,7 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
                 elevation: 0,
                 minimumSize: const Size.fromHeight(54),
                 backgroundColor: AppTheme.accentColor,
-                foregroundColor: AppTheme.surfaceColor,
+                foregroundColor: AppTheme.onAccentColor,
                 disabledBackgroundColor: AppTheme.accentColor.withValues(
                   alpha: 0.6,
                 ),
@@ -359,7 +360,7 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppTheme.surfaceColor,
+                        color: AppTheme.onAccentColor,
                       ),
                     )
                   : const Text(

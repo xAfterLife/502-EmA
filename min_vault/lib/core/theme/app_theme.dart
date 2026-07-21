@@ -17,6 +17,7 @@ abstract final class AppTheme {
   static const Color dangerColor = Color(0xFFEF4444);
   static const Color dangerLightColor = Color(0xFFFEF2F2);
   static const Color successColor = Color(0xFF10B981);
+  static const Color onAccentColor = Colors.white;
 
   // Light palette
   static const Color _primaryLight = Color(0xFF1A1F36);
@@ -33,10 +34,12 @@ abstract final class AppTheme {
   static const Color _backgroundDark = Color(0xFF14161F);
   static const Color _textPrimaryDark = Color(0xFFF1F2F6);
   static const Color _textSecondaryDark = Color(0xFF9CA3AF);
-  static const Color _borderDark = Color(0xFF2E3346);
+  static const Color _borderDark = Color(0xFF383F58);
   static const Color _dividerDark = Color(0xFF262B3D);
 
-  // Mode-aware getters — SAME call sites as before (AppTheme.xxxColor)
+  // Mode-aware getters — SAME call sites as before (AppTheme.xxxColor),
+  // but no longer compile-time constants. Any `const` widget/style using
+  // these must drop the `const`.
   static Color get primaryColor => _isDark ? _primaryDark : _primaryLight;
   static Color get surfaceColor => _isDark ? _surfaceDark : _surfaceLight;
   static Color get backgroundColour =>
@@ -67,6 +70,7 @@ abstract final class AppTheme {
 
   static ThemeData _buildTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
+
     final colorScheme = isDark
         ? const ColorScheme.dark(
             primary: _primaryDark,
@@ -89,10 +93,19 @@ abstract final class AppTheme {
             onError: Colors.white,
           );
 
+    final fieldFill = isDark ? _surfaceDark : _surfaceLight;
+    final fieldBorder = isDark ? _borderDark : _borderLight;
+    final labelColor = isDark ? _textSecondaryDark : _textSecondaryLight;
+    final bodyColor = isDark ? _textPrimaryDark : _textPrimaryLight;
+
     return ThemeData(
+      brightness: brightness,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: isDark ? _backgroundDark : _backgroundLight,
       fontFamily: 'Roboto',
+      textTheme:
+          (isDark ? Typography.whiteMountainView : Typography.blackMountainView)
+              .apply(bodyColor: bodyColor, displayColor: bodyColor),
       appBarTheme: AppBarTheme(
         backgroundColor: isDark ? _primaryDark : _primaryLight,
         foregroundColor: Colors.white,
@@ -103,6 +116,39 @@ abstract final class AppTheme {
           fontWeight: FontWeight.w600,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: fieldFill,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: spM,
+          vertical: spM,
+        ),
+        labelStyle: TextStyle(color: labelColor),
+        hintStyle: TextStyle(color: labelColor),
+        helperStyle: TextStyle(color: labelColor),
+        prefixIconColor: labelColor,
+        suffixIconColor: labelColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusL),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusL),
+          borderSide: BorderSide(color: fieldBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusL),
+          borderSide: const BorderSide(color: accentColor, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusL),
+          borderSide: const BorderSide(color: dangerColor),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusL),
+          borderSide: const BorderSide(color: dangerColor, width: 1.5),
+        ),
       ),
     );
   }

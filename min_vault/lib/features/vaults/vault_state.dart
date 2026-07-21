@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:min_vault/features/vaults/domain/vault.dart';
+import 'package:min_vault/features/vaults/vault.dart';
 
 sealed class VaultState extends Equatable {
   const VaultState();

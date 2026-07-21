@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:min_vault/core/crypto/encryption_service.dart';
-import 'package:min_vault/features/auth/data/auth_storage_service.dart';
+import 'package:min_vault/features/auth/auth_storage_service.dart';
 
 /// Derives an AES-256 key from a master password and provides
 /// a verifier so the password can be checked without storing it.

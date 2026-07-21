@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
-import 'package:min_vault/features/auth/state/auth_cubit.dart';
-import 'package:min_vault/features/auth/state/auth_state.dart';
+import 'package:min_vault/features/auth/auth_cubit.dart';
+import 'package:min_vault/features/auth/auth_state.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
@@ -33,7 +33,6 @@ class _SetupScreenState extends State<SetupScreen> {
     final password = _passwordController.text;
     final confirm = _confirmController.text;
 
-    // Validate password
     if (password.length < 8) {
       setState(() {
         _passwordError = 'Password must be at least 8 characters.';
@@ -43,7 +42,6 @@ class _SetupScreenState extends State<SetupScreen> {
     }
     setState(() => _passwordError = null);
 
-    // Validate confirm
     if (password != confirm) {
       setState(() => _confirmError = 'Passwords do not match.');
       return;
@@ -106,6 +104,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 40),
                   TextField(
                     controller: _passwordController,
+                    style: TextStyle(color: AppTheme.textPrimaryColor),
                     obscureText: true,
                     autofocus: true,
                     textInputAction: TextInputAction.next,
@@ -114,12 +113,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       helperText: 'Minimum 8 characters',
                       errorText: _passwordError,
                       prefixIcon: const Icon(Icons.lock_rounded),
-                      filled: true,
                       fillColor: AppTheme.surfaceColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                        borderSide: BorderSide.none,
-                      ),
                     ),
                     onChanged: (_) {
                       setState(() {
@@ -131,6 +125,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _confirmController,
+                    style: TextStyle(color: AppTheme.textPrimaryColor),
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) =>
@@ -138,13 +133,8 @@ class _SetupScreenState extends State<SetupScreen> {
                     decoration: InputDecoration(
                       labelText: 'Confirm Password',
                       errorText: _confirmError,
-                      prefixIcon: const Icon(Icons.lock_rounded),
-                      filled: true,
                       fillColor: AppTheme.surfaceColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                        borderSide: BorderSide.none,
-                      ),
+                      prefixIcon: const Icon(Icons.lock_rounded),
                     ),
                     onChanged: (_) {
                       setState(() => _confirmError = null);
@@ -157,7 +147,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       elevation: 0,
                       minimumSize: const Size.fromHeight(54),
                       backgroundColor: AppTheme.accentColor,
-                      foregroundColor: AppTheme.surfaceColor,
+                      foregroundColor: AppTheme.onAccentColor,
                       disabledBackgroundColor: AppTheme.accentColor.withValues(
                         alpha: 0.6,
                       ),
@@ -166,12 +156,12 @@ class _SetupScreenState extends State<SetupScreen> {
                       ),
                     ),
                     child: _isCreating
-                        ? SizedBox(
+                        ? const SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppTheme.surfaceColor,
+                              color: AppTheme.onAccentColor,
                             ),
                           )
                         : const Text(

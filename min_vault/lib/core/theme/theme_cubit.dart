@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 
 class ThemeCubit extends Cubit<bool> {
-  ThemeCubit({required SharedPreferences prefs}) : _prefs = prefs,
+  ThemeCubit({required SharedPreferences prefs})
+    : _prefs = prefs,
       super(prefs.getBool(_key) ?? false) {
     AppTheme.applyBrightness(state ? Brightness.dark : Brightness.light);
   }

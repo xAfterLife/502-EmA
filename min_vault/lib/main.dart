@@ -4,11 +4,11 @@ import 'package:min_vault/core/app_router.dart';
 import 'package:min_vault/core/di/injection.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 import 'package:min_vault/core/theme/theme_cubit.dart';
-import 'package:min_vault/features/auth/data/master_key_service.dart';
-import 'package:min_vault/features/auth/state/auth_cubit.dart';
-import 'package:min_vault/features/auth/state/auth_state.dart';
-import 'package:min_vault/features/vaults/data/vault_repository.dart';
-import 'package:min_vault/features/vaults/state/vault_cubit.dart';
+import 'package:min_vault/features/auth/master_key_service.dart';
+import 'package:min_vault/features/auth/auth_cubit.dart';
+import 'package:min_vault/features/auth/auth_state.dart';
+import 'package:min_vault/features/vaults/vault_repository.dart';
+import 'package:min_vault/features/vaults/vault_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
