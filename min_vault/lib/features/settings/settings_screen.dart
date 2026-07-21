@@ -31,7 +31,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update biometric unlock: $e')),
+          SnackBar(
+            content: Text('Could not update biometric unlock: $e'),
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     } finally {
@@ -44,40 +47,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColour,
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppTheme.spM),
-        children: [
-          _SectionHeader('Appearance'),
-          BlocBuilder<ThemeCubit, bool>(
-            builder: (context, isDark) => _SettingsTile(
-              icon: Icons.dark_mode_outlined,
-              title: 'Dark Mode',
-              trailing: Switch(
-                value: isDark,
-                activeThumbColor: AppTheme.accentColor,
-                onChanged: (v) => context.read<ThemeCubit>().toggle(v),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(AppTheme.spM),
+          children: [
+            _SectionHeader('Appearance'),
+            BlocBuilder<ThemeCubit, bool>(
+              builder: (context, isDark) => _SettingsTile(
+                icon: Icons.dark_mode_outlined,
+                title: 'Dark Mode',
+                trailing: Switch(
+                  value: isDark,
+                  activeThumbColor: AppTheme.accentColor,
+                  onChanged: (v) => context.read<ThemeCubit>().toggle(v),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppTheme.spL),
-          _SectionHeader('Security'),
-          _SettingsTile(
-            icon: Icons.fingerprint,
-            title: 'Biometric Unlock',
-            trailing: _biometricEnabled == null
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Switch(
-                    value: _biometricEnabled!,
-                    activeThumbColor: AppTheme.accentColor,
-                    onChanged: _biometricBusy ? null : _onBiometricChanged,
-                  ),
-          ),
-          // Cloud Account section slots in here later.
-        ],
+            const SizedBox(height: AppTheme.spL),
+            _SectionHeader('Security'),
+            _SettingsTile(
+              icon: Icons.fingerprint,
+              title: 'Biometric Unlock',
+              trailing: _biometricEnabled == null
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Switch(
+                      value: _biometricEnabled!,
+                      activeThumbColor: AppTheme.accentColor,
+                      onChanged: _biometricBusy ? null : _onBiometricChanged,
+                    ),
+            ),
+            // Cloud Account section slots in here later.
+          ],
+        ),
       ),
     );
   }

@@ -54,8 +54,8 @@ class AuthCubit extends Cubit<AuthState> {
       await _keyService.unlockWithBiometric();
       emit(const AuthAuthenticated());
     } catch (e) {
-      // Biometric failed — fall back to password screen.
-      emit(const AuthUnlockRequired(biometricAvailable: false));
+      final bioEnabled = await _keyService.isBiometricEnabled();
+      emit(AuthUnlockRequired(biometricAvailable: bioEnabled));
     }
   }
 
