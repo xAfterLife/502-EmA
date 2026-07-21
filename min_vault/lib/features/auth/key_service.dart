@@ -2,12 +2,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:min_vault/core/crypto/encryption_service.dart';
-import 'package:min_vault/features/auth/data/auth_storage_service.dart';
+import 'package:min_vault/features/auth/auth_storage_service.dart';
 
 /// Derives an AES-256 key from a master password and provides
 /// a verifier so the password can be checked without storing it.
-class MasterKeyService {
-  MasterKeyService({required this._storage, required this._encryptionService});
+class KeyService {
+  KeyService({required this._storage, required this._encryptionService});
 
   final AuthStorageService _storage;
   final EncryptionService _encryptionService;
@@ -16,48 +16,69 @@ class MasterKeyService {
   static const String _biometricKey = 'auth_biometric_key';
   static const String _biometricEnabledKey = 'auth_biometric_enabled';
   static const String _verifierPlaintext = 'MINVAULT_KEY_VERIFIER';
+  static const String _wrappedDekKey = 'vault_wrapped_dek';
 
   static final Uint8List _salt = Uint8List.fromList(
     utf8.encode('min_vault_master_key_salt_v1'),
   );
   static const int _pbkdf2Iterations = 600000;
 
-  SecretKey? _cachedKey;
+  SecretKey? _cachedMasterKey;
 
   Future<bool> hasMasterPassword() async {
     final verifier = await _storage.read(key: _verifierKey);
     return verifier != null && verifier.trim().isNotEmpty && verifier != "null";
   }
 
-  Future<SecretKey> setupMasterPassword(String password) async {
-    final key = await _deriveKey(password);
-    final blob = await _encryptionService.encrypt(
+  Future<void> setupMasterPassword(String password) async {
+    final kek = await _deriveKey(password);
+
+    final verifierBlob = await _encryptionService.encrypt(
       utf8.encode(_verifierPlaintext),
-      key: key,
+      key: kek,
     );
-    await _storage.write(key: _verifierKey, value: base64Encode(blob));
-    _cachedKey = key;
-    return key;
+    await _storage.write(key: _verifierKey, value: base64Encode(verifierBlob));
+
+    final dek = await _encryptionService.generateNewKey();
+    final wrappedDek = await _encryptionService.encrypt(
+      await dek.extractBytes(),
+      key: kek,
+    );
+    await _storage.write(key: _wrappedDekKey, value: base64Encode(wrappedDek));
+
+    _encryptionService.setDataKey(dek);
+    _cachedMasterKey = kek;
   }
 
-  Future<SecretKey> verifyMasterPassword(String password) async {
-    final stored = await _storage.read(key: _verifierKey);
-    if (stored == null) throw StateError('No master password has been set.');
+  Future<void> verifyMasterPassword(String password) async {
+    final storedVerifier = await _storage.read(key: _verifierKey);
+    final storedWrappedDek = await _storage.read(key: _wrappedDekKey);
+    if (storedVerifier == null || storedWrappedDek == null) {
+      throw StateError('No master password has been set.');
+    }
 
-    final key = await _deriveKey(password);
+    final kek = await _deriveKey(password);
+    final SecretKey dek;
     try {
-      await _encryptionService.decrypt(base64Decode(stored), key: key);
+      await _encryptionService.decrypt(base64Decode(storedVerifier), key: kek);
+      final dekBytes = await _encryptionService.decrypt(
+        base64Decode(storedWrappedDek),
+        key: kek,
+      );
+      dek = SecretKey(dekBytes);
     } catch (_) {
       throw StateError('Incorrect master password.');
     }
-    _cachedKey = key;
-    return key;
+
+    _encryptionService.setDataKey(dek);
+    _cachedMasterKey = kek;
   }
 
-  SecretKey? get cachedKey => _cachedKey;
+  SecretKey? get cachedKey => _cachedMasterKey;
 
   void lock() {
-    _cachedKey = null;
+    _cachedMasterKey = null;
+    _encryptionService.clearDataKey();
   }
 
   Future<bool> isBiometricEnabled() async {
@@ -65,12 +86,12 @@ class MasterKeyService {
   }
 
   Future<void> enableBiometric() async {
-    if (_cachedKey == null) {
+    if (!_encryptionService.hasDataKey) {
       throw StateError('No unlocked key to cache for biometric.');
     }
     // Export the key bytes and store them.
-    final keyBytes = Uint8List.fromList(await _cachedKey!.extractBytes());
-    await _storage.writeBytes(key: _biometricKey, value: keyBytes);
+    final dekBytes = await _encryptionService.exportDataKeyBytes();
+    await _storage.writeBytes(key: _biometricKey, value: dekBytes);
     await _storage.write(key: _biometricEnabledKey, value: 'true');
   }
 
@@ -80,14 +101,12 @@ class MasterKeyService {
   }
 
   /// Restore the AES key from biometric-secured storage.
-  Future<SecretKey> unlockWithBiometric() async {
-    final keyBytes = await _storage.readBytes(key: _biometricKey);
-    if (keyBytes == null) {
+  Future<void> unlockWithBiometric() async {
+    final dekBytes = await _storage.readBytes(key: _biometricKey);
+    if (dekBytes == null) {
       throw StateError('No biometric key stored.');
     }
-    final key = SecretKey(keyBytes);
-    _cachedKey = key;
-    return key;
+    _encryptionService.setDataKey(SecretKey(dekBytes));
   }
 
   Future<SecretKey> _deriveKey(String password) async {

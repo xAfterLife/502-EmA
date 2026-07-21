@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
-import 'package:min_vault/features/vaults/domain/vault.dart';
-import 'package:min_vault/features/vaults/state/vault_cubit.dart';
-import 'package:min_vault/features/vaults/state/vault_state.dart';
+import 'package:min_vault/features/vaults/vault.dart';
+import 'package:min_vault/features/vaults/vault_cubit.dart';
+import 'package:min_vault/features/vaults/vault_state.dart';
 
 class VaultListScreen extends StatefulWidget {
   const VaultListScreen({super.key});
@@ -68,7 +68,7 @@ class _VaultListScreenState extends State<VaultListScreen> {
                   elevation: 0,
                   minimumSize: const Size.fromHeight(56),
                   backgroundColor: AppTheme.accentColor,
-                  foregroundColor: AppTheme.surfaceColor,
+                  foregroundColor: AppTheme.onAccentColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusL),
                   ),
@@ -151,7 +151,7 @@ class _VaultCard extends StatelessWidget {
               children: [
                 Text(
                   vault.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimaryColor,
@@ -160,7 +160,7 @@ class _VaultCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${vault.itemCount} Items',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     color: AppTheme.textSecondaryColor,
                   ),
@@ -170,7 +170,7 @@ class _VaultCard extends StatelessWidget {
           ),
           IconButton(
             onPressed: () => _confirmDelete(context),
-            icon: const Icon(
+            icon: Icon(
               Icons.delete_forever_rounded,
               color: AppTheme.textSecondaryColor,
             ),
@@ -214,7 +214,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -307,7 +307,7 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
             ),
           ),
           const SizedBox(height: 24),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
               'New Vault',
@@ -321,6 +321,7 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
+            style: TextStyle(color: AppTheme.textPrimaryColor),
             autofocus: true,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _submit(),
@@ -345,7 +346,7 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
                 elevation: 0,
                 minimumSize: const Size.fromHeight(54),
                 backgroundColor: AppTheme.accentColor,
-                foregroundColor: AppTheme.surfaceColor,
+                foregroundColor: AppTheme.onAccentColor,
                 disabledBackgroundColor: AppTheme.accentColor.withValues(
                   alpha: 0.6,
                 ),
@@ -354,12 +355,12 @@ class _NewVaultSheetState extends State<_NewVaultSheet> {
                 ),
               ),
               child: _isCreating
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppTheme.surfaceColor,
+                        color: AppTheme.onAccentColor,
                       ),
                     )
                   : const Text(
