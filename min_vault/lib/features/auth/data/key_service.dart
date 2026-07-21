@@ -33,13 +33,17 @@ class KeyService {
   Future<void> setupMasterPassword(String password) async {
     final kek = await _deriveKey(password);
 
-  final verifierBlob = await _encryptionService.encrypt(
-    utf8.encode(_verifierPlaintext), key: kek);
+    final verifierBlob = await _encryptionService.encrypt(
+      utf8.encode(_verifierPlaintext),
+      key: kek,
+    );
     await _storage.write(key: _verifierKey, value: base64Encode(verifierBlob));
 
     final dek = await _encryptionService.generateNewKey();
     final wrappedDek = await _encryptionService.encrypt(
-      await dek.extractBytes(), key: kek);
+      await dek.extractBytes(),
+      key: kek,
+    );
     await _storage.write(key: _wrappedDekKey, value: base64Encode(wrappedDek));
 
     _encryptionService.setDataKey(dek);
@@ -58,7 +62,9 @@ class KeyService {
     try {
       await _encryptionService.decrypt(base64Decode(storedVerifier), key: kek);
       final dekBytes = await _encryptionService.decrypt(
-          base64Decode(storedWrappedDek), key: kek);
+        base64Decode(storedWrappedDek),
+        key: kek,
+      );
       dek = SecretKey(dekBytes);
     } catch (_) {
       throw StateError('Incorrect master password.');

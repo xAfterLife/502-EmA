@@ -30,7 +30,7 @@ class EncryptionService {
     _dataEncryptionKey = null;
   }
 
-  Future<Uint8List> exportDataKeyBytes() async => 
+  Future<Uint8List> exportDataKeyBytes() async =>
       Uint8List.fromList(await _requireDataKey().extractBytes());
 
   SecretKey _requireDataKey() {
@@ -155,7 +155,6 @@ class EncryptionService {
       // Write decrypted file
       final outputFile = File("$outputFilePath/$outputFileName");
       await outputFile.writeAsBytes(decryptedBytes);
-      
     } catch (err) {
       if (kDebugMode) {
         print('Error in decryptFile(): $err');
