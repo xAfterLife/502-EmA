@@ -57,7 +57,7 @@ class MinVaultApp extends StatelessWidget {
           return BlocBuilder<AuthCubit, AuthState>(
             builder: (context, authState) {
               return MaterialApp.router(
-                key: ValueKey(isDark), 
+                key: ValueKey(isDark),
                 title: 'MinVault',
                 debugShowCheckedModeBanner: false,
                 theme: isDark ? AppTheme.dark : AppTheme.light,

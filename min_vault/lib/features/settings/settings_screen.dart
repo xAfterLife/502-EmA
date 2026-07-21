@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 import 'package:min_vault/core/theme/theme_cubit.dart';
+import 'package:min_vault/features/auth/auth_cubit.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,9 +12,31 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool? _biometricEnabled;
+  bool _biometricBusy = false;
+
   @override
   void initState() {
     super.initState();
+    context.read<AuthCubit>().isBiometricEnabled().then((enabled) {
+      if (mounted) setState(() => _biometricEnabled = enabled);
+    });
+  }
+
+  Future<void> _onBiometricChanged(bool value) async {
+    setState(() => _biometricBusy = true);
+    try {
+      await context.read<AuthCubit>().setBiometricEnabled(value);
+      if (mounted) setState(() => _biometricEnabled = value);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not update biometric unlock: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _biometricBusy = false);
+    }
   }
 
   @override
@@ -38,7 +61,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: AppTheme.spL),
           _SectionHeader('Security'),
-          // Biometric unlock section slots in here later.
+          _SettingsTile(
+            icon: Icons.fingerprint,
+            title: 'Biometric Unlock',
+            trailing: _biometricEnabled == null
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Switch(
+                    value: _biometricEnabled!,
+                    activeThumbColor: AppTheme.accentColor,
+                    onChanged: _biometricBusy ? null : _onBiometricChanged,
+                  ),
+          ),
           // Cloud Account section slots in here later.
         ],
       ),
