@@ -1,22 +1,22 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:min_vault/features/auth/data/master_key_service.dart';
+import 'package:min_vault/features/auth/data/key_service.dart';
 import 'package:min_vault/features/auth/state/auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-  AuthCubit({required this._masterKeyService}) : super(const AuthChecking());
+  AuthCubit({required this._keyService}) : super(const AuthChecking());
 
-  final MasterKeyService _masterKeyService;
+  final KeyService _keyService;
 
   /// Check whether a master password exists. Emits [AuthSetupRequired] or
   /// [AuthUnlockRequired] accordingly.
   Future<void> checkAuthStatus() async {
     try {
-      final hasPassword = await _masterKeyService.hasMasterPassword();
+      final hasPassword = await _keyService.hasMasterPassword();
       if (!hasPassword) {
         emit(const AuthSetupRequired());
         return;
       }
-      final bioEnabled = await _masterKeyService.isBiometricEnabled();
+      final bioEnabled = await _keyService.isBiometricEnabled();
       emit(AuthUnlockRequired(biometricAvailable: bioEnabled));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -27,7 +27,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> setupMasterPassword(String password) async {
     emit(const AuthLoading());
     try {
-      await _masterKeyService.setupMasterPassword(password);
+      await _keyService.setupMasterPassword(password);
       emit(const AuthAuthenticated());
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -38,7 +38,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> unlockWithPassword(String password) async {
     emit(const AuthLoading());
     try {
-      await _masterKeyService.verifyMasterPassword(password);
+      await _keyService.verifyMasterPassword(password);
       emit(const AuthAuthenticated());
     } on StateError catch (e) {
       emit(AuthError(e.message));
@@ -51,7 +51,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> unlockWithBiometric() async {
     emit(const AuthLoading());
     try {
-      await _masterKeyService.unlockWithBiometric();
+      await _keyService.unlockWithBiometric();
       emit(const AuthAuthenticated());
     } catch (e) {
       // Biometric failed — fall back to password screen.
@@ -61,8 +61,8 @@ class AuthCubit extends Cubit<AuthState> {
 
   /// Lock the app (clear cached key, return to unlock screen).
   Future<void> lock() async {
-    _masterKeyService.lock();
-    final bioEnabled = await _masterKeyService.isBiometricEnabled();
+    _keyService.lock();
+    final bioEnabled = await _keyService.isBiometricEnabled();
     emit(AuthUnlockRequired(biometricAvailable: bioEnabled));
   }
 }
