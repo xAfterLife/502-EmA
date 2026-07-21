@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:min_vault/features/vaults/data/vault_repository.dart';
-import 'package:min_vault/features/vaults/state/vault_state.dart';
+import 'package:min_vault/features/vaults/vault_repository.dart';
+import 'package:min_vault/features/vaults/vault_state.dart';
 import 'package:uuid/uuid.dart';
 
 class VaultCubit extends Cubit<VaultState> {

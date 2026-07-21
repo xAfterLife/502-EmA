@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:min_vault/features/auth/state/auth_cubit.dart';
-import 'package:min_vault/features/auth/state/auth_state.dart';
-import 'package:min_vault/features/vaults/presentation/vault_list_screen.dart';
-import 'package:min_vault/features/auth/presentation/setup_screen.dart';
-import 'package:min_vault/features/auth/presentation/unlock_screen.dart';
+import 'package:min_vault/features/auth/auth_cubit.dart';
+import 'package:min_vault/features/auth/auth_state.dart';
+import 'package:min_vault/features/vaults/vault_list_screen.dart';
+import 'package:min_vault/features/auth/setup_screen.dart';
+import 'package:min_vault/features/auth/unlock_screen.dart';
 
 late final GoRouter appRouter;
 
