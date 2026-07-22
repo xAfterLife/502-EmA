@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:min_vault/features/auth/auth_cubit.dart';
 import 'package:min_vault/features/auth/auth_state.dart';
 import 'package:min_vault/features/settings/settings_screen.dart';
+import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vaults/vault_list_screen.dart';
+import 'package:min_vault/features/vault_items/vault_detail_screen.dart';
 import 'package:min_vault/features/auth/setup_screen.dart';
 import 'package:min_vault/features/auth/unlock_screen.dart';
 

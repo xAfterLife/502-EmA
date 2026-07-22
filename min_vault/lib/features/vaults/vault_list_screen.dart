@@ -194,7 +194,7 @@ class _VaultCard extends StatelessWidget {
       builder: (_) => AlertDialog(
         title: const Text('Delete Vault'),
         content: Text(
-          'Delete "${vault.name}"? All contents will be permanently removed.',
+          'Delete "${vault.name}"?\nAll contents will be permanently removed.',
         ),
         actions: [
           TextButton(

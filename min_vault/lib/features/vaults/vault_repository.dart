@@ -35,10 +35,10 @@ class VaultRepository {
     if (await metaFile.exists()) {
       final content = await metaFile.readAsString();
       final meta = json.decode(content) as Map<String, dynamic>;
-      final count = await entry
-          .list()
-          .where((e) => e is File && e.path.endsWith('.crypt'))
-          .length;
+      final metaItemsFile = File('${entry.path}/items_meta.json');
+      final count = await metaItemsFile.exists()
+          ? (json.decode(await metaItemsFile.readAsString()) as List).length
+          : 0;
       return Vault(
         name: meta['name'] as String? ?? folderName,
         folderName: folderName,
