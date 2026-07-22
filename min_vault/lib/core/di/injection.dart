@@ -5,6 +5,7 @@ import 'package:min_vault/features/auth/auth_storage_service.dart';
 import 'package:min_vault/features/auth/key_service.dart';
 import 'package:min_vault/features/vaults/vault_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 final getIt = GetIt.instance;
 
@@ -22,6 +23,7 @@ Future<void> configureDependencies() async {
   );
 
   getIt.registerLazySingleton<LocalAuthentication>(() => LocalAuthentication());
+  getIt.registerLazySingleton<SupabaseClient>(() => Supabase.instance.client);
 
   await getIt.allReady();
 
