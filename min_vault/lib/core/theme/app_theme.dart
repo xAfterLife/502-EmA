@@ -13,9 +13,7 @@ abstract final class AppTheme {
 
   // Brand colors — fixed across modes.
   static const Color accentColor = Color(0xFF4361EE);
-  static const Color accentLightColor = Color(0xFFEEF2FF);
   static const Color dangerColor = Color(0xFFEF4444);
-  static const Color dangerLightColor = Color(0xFFFEF2F2);
   static const Color successColor = Color(0xFF10B981);
   static const Color onAccentColor = Colors.white;
 
@@ -50,6 +48,10 @@ abstract final class AppTheme {
       _isDark ? _textSecondaryDark : _textSecondaryLight;
   static Color get borderColor => _isDark ? _borderDark : _borderLight;
   static Color get dividerColor => _isDark ? _dividerDark : _dividerLight;
+  static Color get accentLightColor =>
+      _isDark ? accentColor.withValues(alpha: 0.16) : const Color(0xFFEEF2FF);
+  static Color get dangerLightColor =>
+      _isDark ? dangerColor.withValues(alpha: 0.16) : const Color(0xFFFEF2F2);
 
   // Spacing
   static const double spXS = 4;
@@ -116,6 +118,11 @@ abstract final class AppTheme {
           fontWeight: FontWeight.w600,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: bodyColor,
+        selectionHandleColor: bodyColor,
+        selectionColor: accentColor.withValues(alpha: 0.3),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

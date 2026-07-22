@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 import 'package:min_vault/core/theme/theme_cubit.dart';
 import 'package:min_vault/features/auth/auth_cubit.dart';
+import 'package:min_vault/features/cloud/cloud_auth_cubit.dart';
+import 'package:min_vault/features/cloud/cloud_auth_sheet.dart';
+import 'package:min_vault/features/cloud/cloud_auth_state.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -80,7 +83,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: _biometricBusy ? null : _onBiometricChanged,
                     ),
             ),
-            // Cloud Account section slots in here later.
+            const SizedBox(height: AppTheme.spL),
+            _SectionHeader('Cloud Account'),
+            BlocBuilder<CloudAuthCubit, CloudAuthState>(
+              builder: (context, state) {
+                final signedIn = state is CloudAuthSignedIn;
+                final busy = state is CloudAuthLoading;
+                return _SettingsTile(
+                  icon: signedIn
+                      ? Icons.cloud_done_outlined
+                      : Icons.cloud_outlined,
+                  title: signedIn ? (state).email : 'Cloud Account',
+                  trailing: busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Switch(
+                          value: signedIn,
+                          activeThumbColor: AppTheme.accentColor,
+                          onChanged: (value) {
+                            if (value) {
+                              showCloudAuthSheet(context);
+                            } else {
+                              context.read<CloudAuthCubit>().signOut();
+                            }
+                          },
+                        ),
+                );
+              },
+            ),
           ],
         ),
       ),
