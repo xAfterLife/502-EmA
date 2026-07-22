@@ -192,7 +192,10 @@ class _VaultCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textPrimaryColor),
+            ),
           ),
           TextButton(
             onPressed: () {
