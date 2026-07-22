@@ -48,6 +48,10 @@ GoRouter _createRouter(AuthCubit authCubit) {
         path: '/vault_list',
         builder: (ctx, _) => const VaultListScreen(),
       ),
+      GoRoute(
+        path: '/vault_detail',
+        builder: (ctx, s) => VaultDetailScreenWrapper(vault: s.extra as Vault),
+      ),
       GoRoute(path: '/setup', builder: (ctx, _) => const SetupScreen()),
       GoRoute(path: '/auth', builder: (ctx, _) => const UnlockScreen()),
       GoRoute(path: '/settings', builder: (ctx, _) => const SettingsScreen()),

@@ -48,6 +48,8 @@ dependencies:
   shared_preferences: ^2.5.5
   local_auth: ^3.0.2
   supabase_flutter: ^2.16.0
+  image: ^4.9.1
+  file_picker: ^10.3.9
 
 dev_dependencies:
   flutter_test:
