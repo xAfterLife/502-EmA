@@ -345,9 +345,7 @@ class _RevealSheet extends StatelessWidget {
           SingleChildScrollView(
             scrollDirection: Axis.vertical,
             child: Container(
-              constraints: BoxConstraints(
-                maxHeight: 300
-              ),
+              constraints: BoxConstraints(maxHeight: 300),
               width: double.infinity,
               padding: const EdgeInsets.all(AppTheme.spM),
               decoration: BoxDecoration(
@@ -358,7 +356,7 @@ class _RevealSheet extends StatelessWidget {
                 value,
                 style: TextStyle(color: AppTheme.textPrimaryColor),
               ),
-          )
+            ),
           ),
           const SizedBox(height: 16),
           SizedBox(
