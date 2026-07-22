@@ -28,61 +28,61 @@ class _VaultListScreenState extends State<VaultListScreen> {
         title: const Text('My Vaults'),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () => context.push('/settings'),
             icon: const Icon(Icons.settings_outlined),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: BlocBuilder<VaultCubit, VaultState>(
-              builder: (context, state) => switch (state) {
-                VaultInitial() => const SizedBox.shrink(),
-                VaultLoading() => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                VaultError(:final message) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.spM),
-                    child: Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppTheme.dangerColor),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: BlocBuilder<VaultCubit, VaultState>(
+                builder: (context, state) => switch (state) {
+                  VaultInitial() => const SizedBox.shrink(),
+                  VaultLoading() => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  VaultError(:final message) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppTheme.spM),
+                      child: Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppTheme.dangerColor),
+                      ),
                     ),
                   ),
-                ),
-                VaultLoaded(:final vaults) =>
-                  vaults.isEmpty
-                      ? const _EmptyState()
-                      : _VaultList(vaults: vaults),
-              },
+                  VaultLoaded(:final vaults) =>
+                    vaults.isEmpty ? _EmptyState() : _VaultList(vaults: vaults),
+                },
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppTheme.spM),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _showNewVaultSheet(context),
-                style: ElevatedButton.styleFrom(
-                  elevation: 0,
-                  minimumSize: const Size.fromHeight(56),
-                  backgroundColor: AppTheme.accentColor,
-                  foregroundColor: AppTheme.onAccentColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusL),
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.spM),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showNewVaultSheet(context),
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    minimumSize: const Size.fromHeight(56),
+                    backgroundColor: AppTheme.accentColor,
+                    foregroundColor: AppTheme.onAccentColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                    ),
                   ),
-                ),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text(
-                  'New Vault',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text(
+                    'New Vault',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -199,7 +199,10 @@ class _VaultCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textPrimaryColor),
+            ),
           ),
           TextButton(
             onPressed: () {

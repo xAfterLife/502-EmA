@@ -15,14 +15,15 @@ class _UnlockScreenState extends State<UnlockScreen> {
   final _passwordController = TextEditingController();
   bool _obscured = true;
   String? _error;
+  bool _biometricAvailable = false;
 
   @override
   void initState() {
     super.initState();
-    // Auto-attempt biometric if available.
     final state = context.read<AuthCubit>().state;
-    if (state is AuthUnlockRequired && state.biometricAvailable) {
-      _attemptBiometric();
+    if (state is AuthUnlockRequired) {
+      _biometricAvailable = state.biometricAvailable;
+      if (_biometricAvailable) _attemptBiometric();
     }
   }
 
@@ -138,22 +139,34 @@ class _UnlockScreenState extends State<UnlockScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  BlocBuilder<AuthCubit, AuthState>(
-                    builder: (context, state) {
-                      if (state is! AuthUnlockRequired ||
-                          !state.biometricAvailable) {
-                        return const SizedBox.shrink();
-                      }
-                      return TextButton.icon(
-                        onPressed: _attemptBiometric,
-                        icon: const Icon(Icons.fingerprint),
-                        label: const Text('Unlock with biometric'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.accentColor,
-                        ),
-                      );
-                    },
-                  ),
+                  if (_biometricAvailable)
+                    BlocBuilder<AuthCubit, AuthState>(
+                      builder: (context, state) {
+                        final busy = state is AuthLoading;
+                        return TextButton.icon(
+                          onPressed: busy ? null : _attemptBiometric,
+                          icon: busy
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.fingerprint),
+                          label: Text(
+                            busy
+                                ? 'Waiting for fingerprint…'
+                                : 'Unlock with biometric',
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.accentColor,
+                          ),
+                        );
+                      },
+                    )
+                  else
+                    const SizedBox.shrink(),
                 ],
               ),
             ),

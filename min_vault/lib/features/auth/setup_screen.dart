@@ -62,6 +62,7 @@ class _SetupScreenState extends State<SetupScreen> {
             SnackBar(
               content: Text(state.message),
               backgroundColor: AppTheme.dangerColor,
+              duration: const Duration(seconds: 3),
             ),
           );
         }
