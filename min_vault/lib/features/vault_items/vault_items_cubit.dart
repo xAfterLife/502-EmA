@@ -18,11 +18,19 @@ class VaultItemsCubit extends Cubit<VaultItemsState> {
     try {
       final items = await _repo.loadItems();
 
+      final entries = await Future.wait(
+        items
+            .where((item) => item.hasThumbnail)
+            .map(
+              (item) => _repo
+                  .loadThumbnail(item.id)
+                  .then((bytes) => MapEntry(item.id, bytes)),
+            ),
+      );
+
       final thumbnails = <String, Uint8List>{};
-      for (final item in items) {
-        if (!item.hasThumbnail) continue;
-        final thumbnail = await _repo.loadThumbnail(item.id);
-        if (thumbnail != null) thumbnails[item.id] = thumbnail;
+      for (final entry in entries) {
+        if (entry.value != null) thumbnails[entry.key] = entry.value!;
       }
 
       emit(ItemsLoaded(items, thumbnails));
@@ -54,6 +62,8 @@ class VaultItemsCubit extends Cubit<VaultItemsState> {
   }
 
   Future<String> revealText(String id) => _repo.revealText(id);
+
+  Future<Uint8List> revealImageBytes(String id) => _repo.revealImageBytes(id);
 
   Future<void> updateText(String id, String newValue) =>
       _repo.updateText(id, newValue);

@@ -139,14 +139,8 @@ class _ItemTile extends StatefulWidget {
 }
 
 class _ItemTileState extends State<_ItemTile> {
-  File? _tempFile;
-
   @override
   void dispose() {
-    final tempFile = _tempFile;
-    if (tempFile != null && tempFile.existsSync()) {
-      tempFile.deleteSync();
-    }
     super.dispose();
   }
 
@@ -159,24 +153,35 @@ class _ItemTileState extends State<_ItemTile> {
 
   Future<void> _onTap(BuildContext context) async {
     final cubit = context.read<VaultItemsCubit>();
-    switch (widget.item.type) {
-      case ItemType.password:
-      case ItemType.note:
-        final value = await cubit.revealText(widget.item.id);
-        if (context.mounted) _showRevealSheet(context, value);
-        break;
-      case ItemType.image:
-        final file = await cubit.revealFile(widget.item.id);
-        _tempFile = file;
-        if (context.mounted) {
-          await Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => _ImageViewer(file: file)));
-        }
-        break;
-      case ItemType.file:
-        // Support for generic type files not yet added
-        break;
+    try {
+      switch (widget.item.type) {
+        case ItemType.password:
+        case ItemType.note:
+          final value = await cubit.revealText(widget.item.id);
+          if (context.mounted) _showRevealSheet(context, value);
+        case ItemType.image:
+          final bytes = await cubit.revealImageBytes(widget.item.id);
+          if (context.mounted) {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ImageViewer(imageBytes: bytes),
+              ),
+            );
+          }
+        case ItemType.file:
+          // Support for generic type files not yet added.
+          break;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not decrypt item: $e'),
+            backgroundColor: AppTheme.dangerColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -295,9 +300,9 @@ class _ItemTileState extends State<_ItemTile> {
 }
 
 class _ImageViewer extends StatelessWidget {
-  const _ImageViewer({required this.file});
+  const _ImageViewer({required this.imageBytes});
 
-  final File file;
+  final Uint8List imageBytes;
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +313,7 @@ class _ImageViewer extends StatelessWidget {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Center(child: InteractiveViewer(child: Image.file(file))),
+      body: Center(child: InteractiveViewer(child: Image.memory(imageBytes))),
     );
   }
 }

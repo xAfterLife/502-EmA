@@ -1,13 +1,39 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/foundation.dart';
 import 'package:min_vault/core/crypto/encryption_service.dart';
 import 'package:min_vault/features/vault_items/vault_item.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:image/image.dart' as img;
+
+Uint8List? _generateThumbnailIsolate(List<dynamic> params) {
+  final imageBytes = params[0] as Uint8List;
+  final targetWidth = params[1] as int;
+  final jpegQuality = params[2] as int;
+
+  final decoded = img.decodeImage(imageBytes);
+  if (decoded == null) return null;
+  final resized = img.copyResize(decoded, width: targetWidth);
+  return Uint8List.fromList(img.encodeJpg(resized, quality: jpegQuality));
+}
+
+Future<Uint8List> _decryptInIsolate(List<dynamic> params) async {
+  final encryptedBytes = params[0] as Uint8List;
+  final keyBytes = params[1] as Uint8List;
+
+  final algorithm = Xchacha20.poly1305Aead();
+  final box = SecretBox.fromConcatenation(
+    encryptedBytes,
+    nonceLength: algorithm.nonceLength,
+    macLength: algorithm.macAlgorithm.macLength,
+  );
+  final key = SecretKey(keyBytes);
+  final decrypted = await algorithm.decrypt(box, secretKey: key);
+  return Uint8List.fromList(decrypted);
+}
 
 class VaultItemRepository {
   VaultItemRepository({
@@ -69,8 +95,9 @@ class VaultItemRepository {
     final thumbFile = File('${dir.path}/$id.thumb.crypt');
     if (!await thumbFile.exists()) return null;
 
-    final key = await _dek;
-    return _encryptionService.decrypt(await thumbFile.readAsBytes(), key: key);
+    final encryptedBytes = await thumbFile.readAsBytes();
+    final keyBytes = await _encryptionService.exportDataKeyBytes();
+    return compute(_decryptInIsolate, <dynamic>[encryptedBytes, keyBytes]);
   }
 
   Future<void> addItem({
@@ -92,7 +119,11 @@ class VaultItemRepository {
 
     var hasThumbnail = false;
     if (type == ItemType.image) {
-      final thumbBytes = _generateThumbnail(valueBytes);
+      final thumbBytes = await compute(_generateThumbnailIsolate, <dynamic>[
+        valueBytes,
+        _thumbnailWidth,
+        _thumbnailQuality,
+      ]);
       if (thumbBytes != null) {
         final thumbFile = File('${dir.path}/$id.thumb.crypt');
         await thumbFile.writeAsBytes(
@@ -144,6 +175,8 @@ class VaultItemRepository {
     return utf8.decode(await _readValueBytes(id));
   }
 
+  Future<Uint8List> revealImageBytes(String id) => _readValueBytes(id);
+
   Future<void> updateText(String id, String newValue) async {
     final dir = await _vaultDir;
     final valueFile = File('${dir.path}/$id.value.crypt');
@@ -191,14 +224,5 @@ class VaultItemRepository {
         if (value is Uint8List) return value;
         throw ArgumentError('Expected a File or bytes for $type.');
     }
-  }
-
-  Uint8List? _generateThumbnail(Uint8List imageBytes) {
-    final decoded = img.decodeImage(imageBytes);
-    if (decoded == null) return null;
-    final resized = img.copyResize(decoded, width: _thumbnailWidth);
-    return Uint8List.fromList(
-      img.encodeJpg(resized, quality: _thumbnailQuality),
-    );
   }
 }
