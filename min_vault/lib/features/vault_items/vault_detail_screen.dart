@@ -53,25 +53,27 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColour,
       appBar: AppBar(title: Text(widget.vault.name)),
-      body: BlocBuilder<VaultItemsCubit, VaultItemsState>(
-        builder: (context, state) => switch (state) {
-          ItemsInitial() => const SizedBox.shrink(),
-          ItemsLoading() => const Center(child: CircularProgressIndicator()),
-          ItemsError(:final message) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.spM),
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppTheme.dangerColor),
+      body: SafeArea(
+        child: BlocBuilder<VaultItemsCubit, VaultItemsState>(
+          builder: (context, state) => switch (state) {
+            ItemsInitial() => const SizedBox.shrink(),
+            ItemsLoading() => const Center(child: CircularProgressIndicator()),
+            ItemsError(:final message) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.spM),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppTheme.dangerColor),
+                ),
               ),
             ),
-          ),
-          ItemsLoaded(:final items, :final thumbnails) =>
-            items.isEmpty
-                ? const _EmptyState()
-                : _ItemList(items: items, thumbnails: thumbnails),
-        },
+            ItemsLoaded(:final items, :final thumbnails) =>
+              items.isEmpty
+                  ? const _EmptyState()
+                  : _ItemList(items: items, thumbnails: thumbnails),
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddItemSheet(context),
@@ -197,11 +199,11 @@ class _ItemTileState extends State<_ItemTile> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete Item'),
-        content: Text('Delete "${widget.item.title}"? This cannot be undone.'),
+        content: Text('Delete "${widget.item.title}"?\nThis cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.textPrimaryColor)),
           ),
           TextButton(
             onPressed: () {
@@ -613,8 +615,11 @@ class _AddItemSheetState extends State<_AddItemSheet> {
         else
           OutlinedButton.icon(
             onPressed: _pickImage,
-            icon: const Icon(Icons.image_outlined),
-            label: Text(_pickedFile?.name ?? 'Choose Image'),
+            icon: const Icon(Icons.image_outlined, color: AppTheme.accentColor),
+            label: Text(
+              _pickedFile?.name ?? 'Choose Image',
+              style: TextStyle(color: AppTheme.textPrimaryColor),
+            ),
           ),
         if (_error != null) ...[
           const SizedBox(height: 8),

@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:min_vault/features/auth/auth_cubit.dart';
 import 'package:min_vault/features/auth/auth_state.dart';
-import 'package:min_vault/features/vault_items/vault_detail_screen.dart';
+import 'package:min_vault/features/settings/settings_screen.dart';
 import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vaults/vault_list_screen.dart';
+import 'package:min_vault/features/vault_items/vault_detail_screen.dart';
 import 'package:min_vault/features/auth/setup_screen.dart';
 import 'package:min_vault/features/auth/unlock_screen.dart';
 
@@ -55,6 +56,7 @@ GoRouter _createRouter(AuthCubit authCubit) {
       ),
       GoRoute(path: '/setup', builder: (ctx, _) => const SetupScreen()),
       GoRoute(path: '/auth', builder: (ctx, _) => const UnlockScreen()),
+      GoRoute(path: '/settings', builder: (ctx, _) => const SettingsScreen()),
     ],
     errorBuilder: (ctx, state) =>
         Scaffold(body: Center(child: Text('Error: ${state.error}'))),
