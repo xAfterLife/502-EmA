@@ -144,6 +144,19 @@ class VaultItemRepository {
     return utf8.decode(await _readValueBytes(id));
   }
 
+  Future<void> updateText(String id, String newValue) async {
+    final dir = await _vaultDir;
+    final valueFile = File('${dir.path}/$id.value.crypt');
+    if (!await valueFile.exists()) {
+      throw StateError('Item not found.');
+    }
+
+    final key = await _dek;
+    await valueFile.writeAsBytes(
+      await _encryptionService.encrypt(utf8.encode(newValue), key: key),
+    );
+  }
+
   Future<File> revealFile(String id) async {
     final bytes = await _readValueBytes(id);
     final tempDir = await getTemporaryDirectory();

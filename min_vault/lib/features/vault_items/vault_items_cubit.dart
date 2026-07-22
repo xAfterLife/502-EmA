@@ -55,5 +55,8 @@ class VaultItemsCubit extends Cubit<VaultItemsState> {
 
   Future<String> revealText(String id) => _repo.revealText(id);
 
+  Future<void> updateText(String id, String newValue) =>
+      _repo.updateText(id, newValue);
+
   Future<File> revealFile(String id) => _repo.revealFile(id);
 }
