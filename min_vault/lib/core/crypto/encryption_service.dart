@@ -18,11 +18,11 @@ class EncryptionService {
     return _algorithm.newSecretKey();
   }
 
-  void setDataKey(SecretKey key) async {
+  void setDataKey(SecretKey key) {
     _dataEncryptionKey = key;
   }
 
-  void clearDataKey() async {
+  void clearDataKey() {
     _dataEncryptionKey = null;
   }
 
