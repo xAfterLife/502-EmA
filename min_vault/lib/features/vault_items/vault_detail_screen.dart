@@ -203,7 +203,10 @@ class _ItemTileState extends State<_ItemTile> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppTheme.textPrimaryColor)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textPrimaryColor),
+            ),
           ),
           TextButton(
             onPressed: () {

@@ -1,8 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart';
 import 'package:cryptography/cryptography.dart';
 
 class EncryptionService {
@@ -67,98 +63,5 @@ class EncryptionService {
     return Uint8List.fromList(
       await _algorithm.decrypt(box, secretKey: key, aad: aad),
     );
-  }
-
-  /// This function takes a file path as an argument and encrypts the file with the Xchacha20-poly1305
-  /// algorithm. After encryption you will have the original file and an encrypted file ending with .crypt .
-  Future<void> encryptFile(String filePath) async {
-    try {
-      // Input setup
-      final inputFile = File(filePath);
-      if (!await inputFile.exists()) {
-        throw Exception('File does not exist.');
-      }
-
-      final String fileName = basename(filePath);
-      final String fileExtension = extension(filePath);
-
-      Uint8List fileBytes = await inputFile.readAsBytes();
-
-      final nonce = _algorithm.newNonce(); // Xchacha20 uses a 192-bit nonce
-      final List<int> additionalData = utf8.encode(
-        fileExtension,
-      ); // Use file extension as AAD
-
-      // Data encryption
-      final secretBox = await _algorithm.encrypt(
-        fileBytes,
-        secretKey: _requireDataKey(),
-        nonce: nonce,
-        aad: additionalData,
-      );
-
-      final bytes = secretBox.concatenation();
-
-      // Output setup
-      final String outputFilePath = dirname(filePath);
-      final outputFile = File('$outputFilePath/$fileName.crypt');
-
-      await outputFile.writeAsBytes(bytes);
-
-      //TODO: Remove original unencrypted file after encryption
-    } catch (err) {
-      if (kDebugMode) {
-        print('Error in decryptFile(): $err');
-      }
-    }
-  }
-
-  /// This function takes a file path as an argument and decrypts the file with the Xchacha20-poly1305
-  /// algorithm. After decryption you will have the encrypted file and an decrypted file ending with .crypt .
-  Future<void> decryptFile(String filePath) async {
-    try {
-      // Input setup
-      final inputFile = File(filePath);
-      if (!await inputFile.exists()) {
-        throw Exception("File does not exist.");
-      }
-
-      Uint8List fileBytes = await inputFile.readAsBytes();
-
-      final secretBox = SecretBox.fromConcatenation(
-        fileBytes,
-        nonceLength: _algorithm.nonceLength,
-        macLength: _algorithm.macAlgorithm.macLength,
-      );
-
-      // Output setup
-      final String fileName = basename(filePath);
-
-      int lastIndex = fileName.lastIndexOf('.');
-      // If the character exists, take the substring after it including the character
-      String outputFileName = lastIndex != -1
-          ? fileName.substring(0, lastIndex)
-          : fileName;
-
-      final String outputFilePath = dirname(filePath);
-
-      // Data decryption
-      final String fileExtension = extension(outputFileName);
-      final List<int> additionalData = utf8.encode(fileExtension);
-
-      final decryptedBytes = await _algorithm.decrypt(
-        secretBox,
-        secretKey: _requireDataKey(),
-        aad: additionalData,
-      );
-
-      // Write decrypted file
-      final outputFile = File("$outputFilePath/$outputFileName");
-      await outputFile.writeAsBytes(decryptedBytes);
-    } catch (err) {
-      if (kDebugMode) {
-        print('Error in decryptFile(): $err');
-      }
-    }
   }
 }
