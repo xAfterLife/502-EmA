@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vaults/vault_cubit.dart';
@@ -124,58 +125,65 @@ class _VaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spM),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(AppTheme.radiusL),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppTheme.accentLightColor,
-              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+      onTap: () async {
+        await context.push('/vault_detail', extra: vault);
+        if (context.mounted) context.read<VaultCubit>().loadVaults();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spM),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.accentLightColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              ),
+              child: const Icon(
+                Icons.folder_outlined,
+                color: AppTheme.accentColor,
+              ),
             ),
-            child: const Icon(
-              Icons.folder_outlined,
-              color: AppTheme.accentColor,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  vault.name,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimaryColor,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    vault.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimaryColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${vault.itemCount} Items',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.textSecondaryColor,
+                  const SizedBox(height: 4),
+                  Text(
+                    '${vault.itemCount} Items',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondaryColor,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            onPressed: () => _confirmDelete(context),
-            icon: Icon(
-              Icons.delete_forever_rounded,
-              color: AppTheme.textSecondaryColor,
+            IconButton(
+              onPressed: () => _confirmDelete(context),
+              icon: Icon(
+                Icons.delete_forever_rounded,
+                color: AppTheme.textSecondaryColor,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
