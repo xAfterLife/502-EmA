@@ -69,6 +69,27 @@ class VaultRepository {
     return Vault(name: name, folderName: folderName, itemCount: 0);
   }
 
+  /// Updates the cloud-related fields in a vault's meta.json.
+  Future<void> updateCloudMeta(
+    String folderName, {
+    required bool cloudEnabled,
+    DateTime? lastSyncedAt,
+  }) async {
+    final dir = await _vaultsDir;
+    final metaFile = File('${dir.path}/$folderName/meta.json');
+    if (!await metaFile.exists()) return;
+
+    final content = await metaFile.readAsString();
+    final meta = json.decode(content) as Map<String, dynamic>;
+    meta['cloudEnabled'] = cloudEnabled;
+    if (lastSyncedAt != null) {
+      meta['lastSyncedAt'] = lastSyncedAt.toUtc().toIso8601String();
+    } else if (!cloudEnabled) {
+      meta.remove('lastSyncedAt');
+    }
+    await metaFile.writeAsString(json.encode(meta));
+  }
+
   Future<void> deleteVault(String folderName) async {
     final dir = await _vaultsDir;
     final vaultDir = Directory('${dir.path}/$folderName');

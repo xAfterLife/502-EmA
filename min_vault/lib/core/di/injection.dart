@@ -3,6 +3,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:min_vault/core/crypto/encryption_service.dart';
 import 'package:min_vault/features/auth/auth_storage_service.dart';
 import 'package:min_vault/features/auth/key_service.dart';
+import 'package:min_vault/features/cloud_backup/backup_repository.dart';
 import 'package:min_vault/features/vaults/vault_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -36,4 +37,7 @@ Future<void> configureDependencies() async {
   );
 
   getIt.registerSingleton<VaultRepository>(VaultRepository());
+  getIt.registerSingleton<BackupRepository>(
+    BackupRepository(client: getIt<SupabaseClient>()),
+  );
 }

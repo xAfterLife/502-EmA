@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 import 'package:min_vault/core/ui/bottom_sheet_helper.dart';
+import 'package:min_vault/features/cloud_backup/cloud_sheet.dart';
+import 'package:min_vault/features/cloud_backup/cloud_sync_cubit.dart';
+import 'package:min_vault/features/cloud_backup/cloud_sync_state.dart';
 import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vaults/vault_cubit.dart';
 import 'package:min_vault/features/vaults/vault_state.dart';
@@ -120,6 +123,13 @@ class _VaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final syncState = context.watch<CloudSyncCubit>().state;
+    final cloudStatus = syncState is CloudSyncLoaded
+        ? syncState.forVault(vault.folderName)
+        : null;
+    final cloudEnabled = cloudStatus?.enabled ?? vault.cloudEnabled;
+    final syncing = cloudStatus?.syncing ?? false;
+
     return InkWell(
       borderRadius: BorderRadius.circular(AppTheme.radiusL),
       onTap: () async {
@@ -168,6 +178,38 @@ class _VaultCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            // Cloud badge — per-vault toggle
+            GestureDetector(
+              onTap: () => showCloudSheet(context, vault),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: cloudEnabled
+                      ? AppTheme.accentLightColor
+                      : AppTheme.backgroundColour,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: syncing
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.accentColor,
+                        ),
+                      )
+                    : Icon(
+                        cloudEnabled
+                            ? Icons.cloud_done_rounded
+                            : Icons.cloud_outlined,
+                        size: 20,
+                        color: cloudEnabled
+                            ? AppTheme.accentColor
+                            : AppTheme.textSecondaryColor,
+                      ),
               ),
             ),
             IconButton(
