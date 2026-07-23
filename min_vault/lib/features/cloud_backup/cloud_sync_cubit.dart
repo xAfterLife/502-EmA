@@ -72,7 +72,7 @@ class CloudSyncCubit extends Cubit<CloudSyncState> {
 
     try {
       final zipBytes = await _backupRepo.buildExportZip(folderName);
-      await _backupRepo.uploadBackup(folderName, zipBytes);
+      await _backupRepo.updateBackup(folderName, zipBytes);
 
       final now = DateTime.now();
       await _vaultRepo.updateCloudMeta(

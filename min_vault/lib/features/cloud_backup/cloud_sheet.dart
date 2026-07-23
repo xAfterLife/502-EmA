@@ -9,12 +9,6 @@ import 'package:min_vault/features/cloud_backup/cloud_sync_state.dart';
 import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vaults/vault_cubit.dart';
 
-/// Per-vault contextual cloud popup — replaces a separate backup screen.
-///
-/// Three states:
-/// - Not signed in → "Sign in to enable cloud backup" button
-/// - Signed in, disabled → Switch "Back up this vault" → on enable: zip + upload
-/// - Signed in, enabled → last-synced timestamp + "Sync now" + "Remove from cloud"
 void showCloudSheet(BuildContext context, Vault vault) {
   showModalBottomSheet(
     context: context,
@@ -65,33 +59,6 @@ class _CloudSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Icon(
-                signedIn ? Icons.cloud_done_rounded : Icons.cloud_outlined,
-                color: signedIn
-                    ? AppTheme.accentColor
-                    : AppTheme.textSecondaryColor,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Cloud Backup',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimaryColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            vault.name,
-            style: TextStyle(fontSize: 14, color: AppTheme.textSecondaryColor),
-          ),
-          const SizedBox(height: 20),
 
           if (!signedIn)
             _NotSignedInSection()

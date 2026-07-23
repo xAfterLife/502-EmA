@@ -67,6 +67,24 @@ class BackupRepository {
     }
   }
 
+    Future<void> updateBackup(String folderName, Uint8List zipBytes) async {
+    final userId = _userId;
+    if (userId == null) throw StateError('Not signed in to cloud.');
+
+    final path = '$userId/$folderName.zip';
+
+    // Write to temp file — Supabase upload requires a File
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File('${tempDir.path}/cloud_upload_$folderName.zip');
+    await tempFile.writeAsBytes(zipBytes);
+
+    try {
+      await _client.storage.from(_bucketName).update(path, tempFile);
+    } finally {
+      if (await tempFile.exists()) await tempFile.delete();
+    }
+  }
+
   /// Downloads a per-vault zip from Supabase Storage.
   Future<Uint8List> downloadBackup(String folderName) async {
     final userId = _userId;
@@ -76,11 +94,6 @@ class BackupRepository {
     return _client.storage.from(_bucketName).download(path);
   }
 
-  /// Restores a downloaded zip into a new vault directory.
-  ///
-  /// If `auth_blob.json` exists in the zip, imports the auth data into
-  /// secure storage (enabling cross-device restore with the same master password).
-  /// Returns the vault name extracted from meta.json.
   Future<String> restoreBackup(Uint8List zipBytes, String newFolderName) async {
     final appDir = await getApplicationDocumentsDirectory();
     final vaultDir = Directory('${appDir.path}/vaults/$newFolderName');
@@ -94,13 +107,6 @@ class BackupRepository {
     String? vaultName;
 
     for (final file in archive) {
-      if (file.name == 'auth_blob.json') {
-        // Extract auth blob for cross-device restore
-        final content = String.fromCharCodes(file.content as List<int>);
-        (json.decode(content) as Map).cast<String, String>();
-        continue; // Don't write auth_blob.json to vault dir — it goes to secure storage
-      }
-
       final outFile = File('${vaultDir.path}/${file.name}');
       outFile.writeAsBytesSync(file.content as List<int>);
 
