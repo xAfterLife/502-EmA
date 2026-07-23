@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:min_vault/core/di/injection.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 import 'package:min_vault/core/theme/theme_cubit.dart';
 import 'package:min_vault/features/auth/auth_cubit.dart';
 import 'package:min_vault/features/cloud/cloud_auth_cubit.dart';
 import 'package:min_vault/features/cloud/cloud_auth_sheet.dart';
 import 'package:min_vault/features/cloud/cloud_auth_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,12 +20,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool? _biometricEnabled;
   bool _biometricBusy = false;
 
+  static const _deleteOriginalKey = 'delete_original_always';
+  bool? _deleteOriginalAlways;
+
   @override
   void initState() {
     super.initState();
     context.read<AuthCubit>().isBiometricEnabled().then((enabled) {
       if (mounted) setState(() => _biometricEnabled = enabled);
     });
+    var prefs = getIt<SharedPreferences>();
+    if (mounted) {
+      setState(() {
+        _deleteOriginalAlways = prefs.getBool(_deleteOriginalKey) ?? false;
+      });
+    }
   }
 
   Future<void> _onBiometricChanged(bool value) async {
@@ -43,6 +54,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } finally {
       if (mounted) setState(() => _biometricBusy = false);
     }
+  }
+
+  Future<void> _onDeleteOriginalChanged(bool value) async {
+    final prefs = getIt<SharedPreferences>();
+    await prefs.setBool(_deleteOriginalKey, value);
+    if (mounted) setState(() => _deleteOriginalAlways = value);
   }
 
   @override
@@ -81,6 +98,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       value: _biometricEnabled!,
                       activeThumbColor: AppTheme.accentColor,
                       onChanged: _biometricBusy ? null : _onBiometricChanged,
+                    ),
+            ),
+            const SizedBox(height: AppTheme.spL),
+            _SectionHeader('Import'),
+            _SettingsTile(
+              icon: Icons.delete_sweep_outlined,
+              title: 'Delete original after import',
+              trailing: _deleteOriginalAlways == null
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Switch(
+                      value: _deleteOriginalAlways!,
+                      activeThumbColor: AppTheme.accentColor,
+                      onChanged: _onDeleteOriginalChanged,
                     ),
             ),
             const SizedBox(height: AppTheme.spL),
