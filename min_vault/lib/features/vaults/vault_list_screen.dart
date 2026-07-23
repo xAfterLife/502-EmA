@@ -68,7 +68,7 @@ class _VaultListScreenState extends State<VaultListScreen> {
                     ),
                     VaultLoaded() =>
                       vaults.isEmpty
-                          ? const _EmptyState()
+                          ? _EmptyState()
                           : _VaultList(vaults: vaults),
                   },
                 ),
