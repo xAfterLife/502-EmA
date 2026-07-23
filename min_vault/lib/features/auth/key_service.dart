@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:local_auth/local_auth.dart';
 import 'package:cryptography/cryptography.dart';
@@ -23,10 +24,8 @@ class KeyService {
   static const String _biometricEnabledKey = 'auth_biometric_enabled';
   static const String _verifierPlaintext = 'MINVAULT_KEY_VERIFIER';
   static const String _wrappedDekKey = 'vault_wrapped_dek';
+  static const String _saltKey = 'auth_salt';
 
-  static final Uint8List _salt = Uint8List.fromList(
-    utf8.encode('min_vault_master_key_salt_v1'),
-  );
   static const int _pbkdf2Iterations = 600000;
 
   SecretKey? _cachedMasterKey;
@@ -37,7 +36,10 @@ class KeyService {
   }
 
   Future<void> setupMasterPassword(String password) async {
-    final kek = await _deriveKey(password);
+    final salt = _generateSalt();
+    await _storage.writeBytes(key: _saltKey, value: salt);
+
+    final kek = await _deriveKey(password, salt);
 
     final verifierBlob = await _encryptionService.encrypt(
       utf8.encode(_verifierPlaintext),
@@ -59,11 +61,13 @@ class KeyService {
   Future<void> verifyMasterPassword(String password) async {
     final storedVerifier = await _storage.read(key: _verifierKey);
     final storedWrappedDek = await _storage.read(key: _wrappedDekKey);
-    if (storedVerifier == null || storedWrappedDek == null) {
+    final salt = await _storage.readBytes(key: _saltKey);
+  
+    if (storedVerifier == null || storedWrappedDek == null || salt == null) {
       throw StateError('No master password has been set.');
     }
 
-    final kek = await _deriveKey(password);
+    final kek = await _deriveKey(password, salt);
     final SecretKey dek;
     try {
       await _encryptionService.decrypt(base64Decode(storedVerifier), key: kek);
@@ -78,6 +82,11 @@ class KeyService {
 
     _encryptionService.setDataKey(dek);
     _cachedMasterKey = kek;
+  }
+
+  Uint8List _generateSalt() {
+    final rnd = Random.secure();
+    return Uint8List.fromList(List<int>.generate(16, (_) => rnd.nextInt(256)));
   }
 
   SecretKey? get cachedKey => _cachedMasterKey;
@@ -135,7 +144,7 @@ class KeyService {
     _encryptionService.setDataKey(SecretKey(dekBytes));
   }
 
-  Future<SecretKey> _deriveKey(String password) async {
+  Future<SecretKey> _deriveKey(String password, Uint8List salt) async {
     final pbkdf2 = Pbkdf2(
       macAlgorithm: Hmac.sha256(),
       iterations: _pbkdf2Iterations,
@@ -143,7 +152,7 @@ class KeyService {
     );
     return pbkdf2.deriveKey(
       secretKey: SecretKey(utf8.encode(password)),
-      nonce: _salt,
+      nonce: salt,
     );
   }
 }
