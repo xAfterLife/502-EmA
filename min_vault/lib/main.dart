@@ -8,6 +8,8 @@ import 'package:min_vault/features/auth/key_service.dart';
 import 'package:min_vault/features/auth/auth_cubit.dart';
 import 'package:min_vault/features/auth/auth_state.dart';
 import 'package:min_vault/features/cloud/cloud_auth_cubit.dart';
+import 'package:min_vault/features/cloud_backup/backup_repository.dart';
+import 'package:min_vault/features/cloud_backup/cloud_sync_cubit.dart';
 import 'package:min_vault/features/vaults/vault_repository.dart';
 import 'package:min_vault/features/vaults/vault_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +28,10 @@ void main() async {
   final vaultCubit = VaultCubit(repository: getIt<VaultRepository>());
   final themeCubit = ThemeCubit(prefs: getIt<SharedPreferences>());
   final cloudAuthCubit = CloudAuthCubit(client: getIt<SupabaseClient>());
+  final cloudSyncCubit = CloudSyncCubit(
+    backupRepo: getIt<BackupRepository>(),
+    vaultRepo: getIt<VaultRepository>(),
+  );
 
   await authCubit.checkAuthStatus();
   initRouter(authCubit);
@@ -36,6 +42,7 @@ void main() async {
       vaultCubit: vaultCubit,
       themeCubit: themeCubit,
       cloudAuthCubit: cloudAuthCubit,
+      cloudSyncCubit: cloudSyncCubit,
     ),
   );
 }
@@ -46,6 +53,7 @@ class MinVaultApp extends StatelessWidget {
     required this.vaultCubit,
     required this.themeCubit,
     required this.cloudAuthCubit,
+    required this.cloudSyncCubit,
     super.key,
   });
 
@@ -53,6 +61,7 @@ class MinVaultApp extends StatelessWidget {
   final VaultCubit vaultCubit;
   final ThemeCubit themeCubit;
   final CloudAuthCubit cloudAuthCubit;
+  final CloudSyncCubit cloudSyncCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +71,7 @@ class MinVaultApp extends StatelessWidget {
         BlocProvider.value(value: vaultCubit),
         BlocProvider.value(value: themeCubit),
         BlocProvider.value(value: cloudAuthCubit),
+        BlocProvider.value(value: cloudSyncCubit),
       ],
 
       child: BlocBuilder<ThemeCubit, bool>(

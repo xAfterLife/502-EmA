@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
 import 'package:min_vault/core/ui/bottom_sheet_helper.dart';
+import 'package:min_vault/features/cloud_backup/cloud_sheet.dart';
+import 'package:min_vault/features/cloud_backup/cloud_sync_cubit.dart';
+import 'package:min_vault/features/cloud_backup/cloud_sync_state.dart';
 import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vaults/vault_cubit.dart';
 import 'package:min_vault/features/vaults/vault_state.dart';
@@ -35,54 +38,72 @@ class _VaultListScreenState extends State<VaultListScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: BlocBuilder<VaultCubit, VaultState>(
-                builder: (context, state) => switch (state) {
-                  VaultInitial() => const SizedBox.shrink(),
-                  VaultLoading() => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  VaultError(:final message) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppTheme.spM),
-                      child: Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppTheme.dangerColor),
+        child: BlocBuilder<VaultCubit, VaultState>(
+          builder: (context, vaultState) {
+            final vaults = vaultState is VaultLoaded
+                ? vaultState.vaults
+                : <Vault>[];
+
+            if (vaultState is VaultLoaded) {
+              context.read<CloudSyncCubit>().loadStatuses(vaults);
+            }
+
+            return Column(
+              children: [
+                Expanded(
+                  child: switch (vaultState) {
+                    VaultInitial() => const SizedBox.shrink(),
+                    VaultLoading() => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    VaultError(:final message) => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppTheme.spM),
+                        child: Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppTheme.dangerColor),
+                        ),
                       ),
                     ),
-                  ),
-                  VaultLoaded(:final vaults) =>
-                    vaults.isEmpty ? _EmptyState() : _VaultList(vaults: vaults),
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppTheme.spM),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _showNewVaultSheet(context),
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    minimumSize: const Size.fromHeight(56),
-                    backgroundColor: AppTheme.accentColor,
-                    foregroundColor: AppTheme.onAccentColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                    ),
-                  ),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text(
-                    'New Vault',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    VaultLoaded() =>
+                      vaults.isEmpty
+                          ? const _EmptyState()
+                          : _VaultList(vaults: vaults),
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(AppTheme.spM),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showNewVaultSheet(context),
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            minimumSize: const Size.fromHeight(56),
+                            backgroundColor: AppTheme.accentColor,
+                            foregroundColor: AppTheme.onAccentColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radiusL,
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text(
+                            'New Vault',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -120,6 +141,13 @@ class _VaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final syncState = context.watch<CloudSyncCubit>().state;
+    final cloudStatus = syncState is CloudSyncLoaded
+        ? syncState.forVault(vault.folderName)
+        : null;
+    final cloudEnabled = cloudStatus?.enabled ?? vault.cloudEnabled;
+    final syncing = cloudStatus?.syncing ?? false;
+
     return InkWell(
       borderRadius: BorderRadius.circular(AppTheme.radiusL),
       onTap: () async {
@@ -168,6 +196,38 @@ class _VaultCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            // Cloud badge — per-vault toggle
+            GestureDetector(
+              onTap: () => showCloudSheet(context, vault),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: cloudEnabled
+                      ? AppTheme.accentLightColor
+                      : AppTheme.backgroundColour,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: syncing
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.accentColor,
+                        ),
+                      )
+                    : Icon(
+                        cloudEnabled
+                            ? Icons.cloud_done_rounded
+                            : Icons.cloud_outlined,
+                        size: 20,
+                        color: cloudEnabled
+                            ? AppTheme.accentColor
+                            : AppTheme.textSecondaryColor,
+                      ),
               ),
             ),
             IconButton(
