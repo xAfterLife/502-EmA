@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
+import 'package:min_vault/core/ui/bottom_sheet_helper.dart';
 import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vaults/vault_cubit.dart';
 import 'package:min_vault/features/vaults/vault_state.dart';
@@ -89,15 +90,9 @@ class _VaultListScreenState extends State<VaultListScreen> {
 
   void _showNewVaultSheet(BuildContext context) {
     final cubit = context.read<VaultCubit>();
-    showModalBottomSheet(
+    showSafeBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surfaceColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXL),
-        ),
-      ),
       builder: (_) =>
           _NewVaultSheet(onConfirm: (name) => cubit.createVault(name)),
     );

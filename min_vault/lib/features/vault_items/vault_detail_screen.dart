@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/crypto/encryption_service.dart';
 import 'package:min_vault/core/di/injection.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
+import 'package:min_vault/core/ui/bottom_sheet_helper.dart';
 import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vault_items/vault_item.dart';
 import 'package:min_vault/features/vault_items/vault_item_repository.dart';
@@ -113,15 +114,9 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
 
   void _showAddItemSheet(BuildContext context) {
     final cubit = context.read<VaultItemsCubit>();
-    showModalBottomSheet(
+    showSafeBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surfaceColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXL),
-        ),
-      ),
       builder: (_) => _AddItemSheet(
         onSubmit:
             ({
@@ -178,35 +173,42 @@ class _ItemTileState extends State<_ItemTile> {
     super.dispose();
   }
 
+  bool get _isActuallyImage =>
+      widget.item.type == ItemType.image ||
+      (widget.item.type == ItemType.file &&
+          widget.item.fileName != null &&
+          isImageFile(widget.item.fileName!));
+
   IconData get _typeIcon => switch (widget.item.type) {
     ItemType.password => Icons.key_outlined,
     ItemType.note => Icons.notes_outlined,
     ItemType.image => Icons.image_outlined,
-    ItemType.file => Icons.insert_drive_file_outlined,
+    ItemType.file =>
+      _isActuallyImage
+          ? Icons.image_outlined
+          : Icons.insert_drive_file_outlined,
   };
 
   bool get _isExportable =>
-      widget.item.type == ItemType.image || widget.item.type == ItemType.file;
+      _isActuallyImage || widget.item.type == ItemType.file;
 
   Future<void> _onTap(BuildContext context) async {
     final cubit = context.read<VaultItemsCubit>();
     try {
-      switch (widget.item.type) {
-        case ItemType.password:
-        case ItemType.note:
-          final value = await cubit.revealText(widget.item.id);
-          if (context.mounted) _showRevealSheet(context, value);
-        case ItemType.image:
-          final bytes = await cubit.revealImageBytes(widget.item.id);
-          if (context.mounted) {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => _ImageViewer(imageBytes: bytes),
-              ),
-            );
-          }
-        case ItemType.file:
-          await _showExportSheet(context);
+      if (_isActuallyImage) {
+        final bytes = await cubit.revealImageBytes(widget.item.id);
+        if (context.mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => _ImageViewer(imageBytes: bytes)),
+          );
+        }
+      } else if (widget.item.type == ItemType.password ||
+          widget.item.type == ItemType.note) {
+        final value = await cubit.revealText(widget.item.id);
+        if (context.mounted) _showRevealSheet(context, value);
+      } else {
+        // Non-image file: show export sheet.
+        await _showExportSheet(context);
       }
     } catch (e) {
       if (context.mounted) {
@@ -222,14 +224,8 @@ class _ItemTileState extends State<_ItemTile> {
   }
 
   Future<void> _showExportSheet(BuildContext context) async {
-    final action = await showModalBottomSheet<_ExportAction>(
+    final action = await showSafeBottomSheet<_ExportAction>(
       context: context,
-      backgroundColor: AppTheme.surfaceColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXL),
-        ),
-      ),
       builder: (_) => const _ExportSheet(),
     );
 
@@ -324,14 +320,8 @@ class _ItemTileState extends State<_ItemTile> {
   };
 
   void _showRevealSheet(BuildContext context, String value) {
-    showModalBottomSheet(
+    showSafeBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surfaceColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXL),
-        ),
-      ),
       builder: (_) => _RevealSheet(title: widget.item.title, value: value),
     );
   }
@@ -717,6 +707,9 @@ class _AddItemSheetState extends State<_AddItemSheet> {
   bool get _isTextType =>
       _selectedType == ItemType.password || _selectedType == ItemType.note;
 
+  bool get _pickedFileIsImage =>
+      _pickedFile != null && isImageFile(_pickedFile!.name);
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -778,10 +771,15 @@ class _AddItemSheetState extends State<_AddItemSheet> {
       _error = null;
     });
 
+    // Auto-promote file → image when the picked file is actually an image.
+    final resolvedType = _selectedType == ItemType.file && _pickedFileIsImage
+        ? ItemType.image
+        : _selectedType!;
+
     try {
       await widget.onSubmit(
         title: title,
-        type: _selectedType!,
+        type: resolvedType,
         value: value,
         sourceFilePath: sourceFilePath,
         fileName: fileName,
@@ -993,6 +991,31 @@ class _AddItemSheetState extends State<_AddItemSheet> {
               style: TextStyle(color: AppTheme.textPrimaryColor),
             ),
           ),
+        if (_selectedType == ItemType.file && _pickedFileIsImage) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(AppTheme.spM),
+            decoration: BoxDecoration(
+              color: AppTheme.accentLightColor,
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: AppTheme.accentColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Detected as image',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textPrimaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         if (_error != null) ...[
           const SizedBox(height: 8),
           Text(_error!, style: const TextStyle(color: AppTheme.dangerColor)),

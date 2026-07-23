@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/core/theme/app_theme.dart';
+import 'package:min_vault/core/ui/bottom_sheet_helper.dart';
 import 'package:min_vault/features/cloud/cloud_auth_cubit.dart';
 import 'package:min_vault/features/cloud/cloud_auth_state.dart';
 
 void showCloudAuthSheet(BuildContext context) {
   final cubit = context.read<CloudAuthCubit>();
-  showModalBottomSheet(
+  showSafeBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.surfaceColor,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTheme.radiusXL),
-      ),
-    ),
     builder: (_) => _CloudAuthSheet(cubit: cubit),
   );
 }

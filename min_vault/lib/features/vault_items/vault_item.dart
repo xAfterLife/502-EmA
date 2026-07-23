@@ -2,6 +2,35 @@ import 'package:equatable/equatable.dart';
 
 enum ItemType { password, note, file, image }
 
+/// Common image file extensions.
+const imageExtensions = {
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.bmp',
+  '.webp',
+  '.tiff',
+  '.tif',
+  '.ico',
+  '.avif',
+  '.heic',
+  '.heif',
+};
+
+///TODO: find a better way to do this
+bool isImageFile(String fileName) {
+  final name = fileName.trim().toLowerCase();
+  if (name.isEmpty) return false;
+
+  final dotIndex = name.lastIndexOf('.');
+  if (dotIndex > 0 && dotIndex < name.length - 1) {
+    final ext = name.substring(dotIndex);
+    return imageExtensions.contains(ext);
+  }
+  return false;
+}
+
 class VaultItem extends Equatable {
   const VaultItem({
     required this.id,
@@ -17,8 +46,6 @@ class VaultItem extends Equatable {
   final ItemType type;
   final bool hasThumbnail;
   final DateTime createdAt;
-
-  /// Original file name (with extension) for image/file items.
   final String? fileName;
 
   VaultItem copyWith({
