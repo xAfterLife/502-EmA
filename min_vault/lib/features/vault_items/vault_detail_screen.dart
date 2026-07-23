@@ -206,13 +206,77 @@ class _ItemTileState extends State<_ItemTile> {
             );
           }
         case ItemType.file:
-          await _shareItem(context);
+          await _showExportSheet(context);
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not decrypt item: $e'),
+            backgroundColor: AppTheme.dangerColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showExportSheet(BuildContext context) async {
+    final action = await showModalBottomSheet<_ExportAction>(
+      context: context,
+      backgroundColor: AppTheme.surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTheme.radiusXL),
+        ),
+      ),
+      builder: (_) => const _ExportSheet(),
+    );
+
+    if (!context.mounted || action == null) return;
+
+    switch (action) {
+      case _ExportAction.share:
+        await _shareItem(context);
+      case _ExportAction.save:
+        await _saveItem(context);
+    }
+  }
+
+  Future<void> _saveItem(BuildContext context) async {
+    final cubit = context.read<VaultItemsCubit>();
+    try {
+      final file = await cubit.revealFile(
+        widget.item.id,
+        fileName: widget.item.fileName,
+      );
+      if (!context.mounted) return;
+
+      final bytes = await file.readAsBytes();
+      final fileName =
+          widget.item.fileName ??
+          '${widget.item.title}${_defaultExtension(widget.item.type)}';
+
+      final savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save to Device',
+        fileName: fileName,
+        bytes: Uint8List.fromList(bytes),
+      );
+
+      if (!context.mounted) return;
+      if (savedPath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Saved to device'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not save item: $e'),
             backgroundColor: AppTheme.dangerColor,
             duration: const Duration(seconds: 3),
           ),
@@ -234,8 +298,11 @@ class _ItemTileState extends State<_ItemTile> {
           widget.item.fileName ??
           '${widget.item.title}${_defaultExtension(widget.item.type)}';
 
-      SharePlus.instance.share(
-        ShareParams(files: [XFile(file.path, name: shareFileName)]),
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, name: shareFileName)],
+          subject: widget.item.title,
+        ),
       );
     } catch (e) {
       if (context.mounted) {
@@ -343,12 +410,12 @@ class _ItemTileState extends State<_ItemTile> {
               ),
               if (_isExportable)
                 IconButton(
-                  onPressed: () => _shareItem(context),
+                  onPressed: () => _showExportSheet(context),
                   icon: Icon(
                     Icons.share_outlined,
                     color: AppTheme.textSecondaryColor,
                   ),
-                  tooltip: 'Share',
+                  tooltip: 'Export',
                 ),
               IconButton(
                 onPressed: () => _confirmDelete(context),
@@ -359,6 +426,128 @@ class _ItemTileState extends State<_ItemTile> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _ExportAction { share, save }
+
+class _ExportSheet extends StatelessWidget {
+  const _ExportSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spL),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.borderColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusXL),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Export',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimaryColor,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _ExportTile(
+            icon: Icons.share_outlined,
+            title: 'Share',
+            subtitle: 'Send using another app',
+            onTap: () => Navigator.pop(context, _ExportAction.share),
+          ),
+          const SizedBox(height: 12),
+          _ExportTile(
+            icon: Icons.download_rounded,
+            title: 'Save to Device',
+            subtitle: 'Save a decrypted copy',
+            onTap: () => Navigator.pop(context, _ExportAction.save),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExportTile extends StatelessWidget {
+  const _ExportTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spM),
+        decoration: BoxDecoration(
+          color: AppTheme.backgroundColour,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.accentLightColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              ),
+              child: Icon(icon, color: AppTheme.accentColor),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: AppTheme.textPrimaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: AppTheme.textSecondaryColor),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.textSecondaryColor,
+            ),
+          ],
         ),
       ),
     );
