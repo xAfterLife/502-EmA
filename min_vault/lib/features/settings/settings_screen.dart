@@ -7,6 +7,10 @@ import 'package:min_vault/features/auth/auth_cubit.dart';
 import 'package:min_vault/features/cloud/cloud_auth_cubit.dart';
 import 'package:min_vault/features/cloud/cloud_auth_sheet.dart';
 import 'package:min_vault/features/cloud/cloud_auth_state.dart';
+import 'package:min_vault/features/cloud_backup/backup_repository.dart';
+import 'package:min_vault/features/cloud_backup/cloud_sync_cubit.dart';
+import 'package:min_vault/features/cloud_backup/vault_backup_info.dart';
+import 'package:min_vault/features/vaults/vault_cubit.dart' show VaultCubit;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -148,10 +152,155 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
+            BlocBuilder<CloudAuthCubit, CloudAuthState>(
+              builder: (context, state) {
+                final signedIn = state is CloudAuthSignedIn;
+                if (!signedIn) {
+                  return _SettingsTile(
+                    icon: Icons.cloud_download_outlined,
+                    title: 'Restore from Cloud',
+                    trailing: Text(
+                      'Sign in first',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondaryColor,
+                      ),
+                    ),
+                  );
+                }
+                return _ActionTile(
+                  icon: Icons.cloud_download_outlined,
+                  title: 'Restore from Cloud',
+                  onTap: () => _restoreFromCloud(context),
+                );
+              },
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _restoreFromCloud(BuildContext context) async {
+    final backupRepo = getIt<BackupRepository>();
+
+    try {
+      final backups = await backupRepo.listBackups();
+
+      if (backups.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No cloud backups found'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!context.mounted) return;
+
+      final selected = await showDialog<VaultBackupInfo>(
+        context: context,
+        builder: (dialogContext) => Dialog(
+          backgroundColor: AppTheme.surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spM),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Restore Vault',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimaryColor,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spM),
+                ...backups.map(
+                  (vaultBackupInfo) => InkWell(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                    onTap: () {
+                      Navigator.pop(dialogContext, vaultBackupInfo);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: AppTheme.spS),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spM,
+                        vertical: AppTheme.spS,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundColour,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.folder_outlined,
+                            color: AppTheme.textSecondaryColor,
+                          ),
+                          const SizedBox(width: AppTheme.spM),
+                          Expanded(
+                            child: Text(
+                              vaultBackupInfo.name,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textPrimaryColor,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppTheme.textSecondaryColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      if (selected == null || !context.mounted) return;
+
+      final vaultName = await context.read<CloudSyncCubit>().restoreFromCloud(
+        selected,
+      );
+
+      if (context.mounted) {
+        await context.read<VaultCubit>().loadVaults();
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Vault "$vaultName" restored from cloud'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Restore failed: $e'),
+            backgroundColor: AppTheme.dangerColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -181,6 +330,7 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.trailing,
   });
+
   final IconData icon;
   final String title;
   final Widget trailing;
@@ -189,10 +339,8 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spS),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spM,
-        vertical: AppTheme.spS,
-      ),
+      constraints: const BoxConstraints(minHeight: AppTheme.tileHeight),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spM),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(AppTheme.radiusL),
@@ -213,6 +361,55 @@ class _SettingsTile extends StatelessWidget {
           ),
           trailing,
         ],
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppTheme.spS),
+        constraints: const BoxConstraints(minHeight: AppTheme.tileHeight),
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spM),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppTheme.textSecondaryColor),
+            const SizedBox(width: AppTheme.spM),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textPrimaryColor,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.textSecondaryColor,
+            ),
+          ],
+        ),
       ),
     );
   }

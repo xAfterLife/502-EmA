@@ -24,7 +24,7 @@ class _VaultListScreenState extends State<VaultListScreen> {
     context.read<VaultCubit>().loadVaults();
   }
 
-   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColour,
@@ -40,14 +40,12 @@ class _VaultListScreenState extends State<VaultListScreen> {
       body: SafeArea(
         child: BlocBuilder<VaultCubit, VaultState>(
           builder: (context, vaultState) {
-            final vaults = vaultState is VaultLoaded ? vaultState.vaults : <Vault>[];
+            final vaults = vaultState is VaultLoaded
+                ? vaultState.vaults
+                : <Vault>[];
 
-            // Initialize CloudSyncCubit statuses once vaults are loaded
             if (vaultState is VaultLoaded) {
-              final syncCubit = context.read<CloudSyncCubit>();
-              if (syncCubit.state is CloudSyncInitial) {
-                syncCubit.loadStatuses(vaults);
-              }
+              context.read<CloudSyncCubit>().loadStatuses(vaults);
             }
 
             return Column(
@@ -55,7 +53,9 @@ class _VaultListScreenState extends State<VaultListScreen> {
                 Expanded(
                   child: switch (vaultState) {
                     VaultInitial() => const SizedBox.shrink(),
-                    VaultLoading() => const Center(child: CircularProgressIndicator()),
+                    VaultLoading() => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
                     VaultError(:final message) => Center(
                       child: Padding(
                         padding: const EdgeInsets.all(AppTheme.spM),
@@ -66,9 +66,10 @@ class _VaultListScreenState extends State<VaultListScreen> {
                         ),
                       ),
                     ),
-                    VaultLoaded() => vaults.isEmpty
-                        ? const _EmptyState()
-                        : _VaultList(vaults: vaults),
+                    VaultLoaded() =>
+                      vaults.isEmpty
+                          ? const _EmptyState()
+                          : _VaultList(vaults: vaults),
                   },
                 ),
                 Padding(
@@ -85,7 +86,9 @@ class _VaultListScreenState extends State<VaultListScreen> {
                             backgroundColor: AppTheme.accentColor,
                             foregroundColor: AppTheme.onAccentColor,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radiusL,
+                              ),
                             ),
                           ),
                           icon: const Icon(Icons.add_rounded),

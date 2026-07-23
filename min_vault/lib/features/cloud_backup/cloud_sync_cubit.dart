@@ -2,15 +2,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:min_vault/features/cloud/cloud_auth_state.dart';
 import 'package:min_vault/features/cloud_backup/backup_repository.dart';
 import 'package:min_vault/features/cloud_backup/cloud_sync_state.dart';
+import 'package:min_vault/features/cloud_backup/vault_backup_info.dart';
 import 'package:min_vault/features/vaults/vault.dart';
 import 'package:min_vault/features/vaults/vault_repository.dart';
-import 'package:uuid/uuid.dart';
 
-/// Manages per-vault cloud sync status as a map-shaped state.
-///
-/// Reads cloud sign-in status from the existing CloudAuthCubit.
-/// Each vault's sync state (enabled, syncing, lastSyncedAt, error)
-/// is tracked independently in `CloudSyncLoaded.statuses`.
 class CloudSyncCubit extends Cubit<CloudSyncState> {
   CloudSyncCubit({required this._backupRepo, required this._vaultRepo})
     : super(const CloudSyncInitial());
@@ -18,7 +13,6 @@ class CloudSyncCubit extends Cubit<CloudSyncState> {
   final BackupRepository _backupRepo;
   final VaultRepository _vaultRepo;
 
-  /// Initializes sync status from vault metadata (cloudEnabled, lastSyncedAt).
   Future<void> loadStatuses(List<Vault> vaults) async {
     final statuses = <String, VaultCloudStatus>{};
     for (final vault in vaults) {
@@ -30,64 +24,71 @@ class CloudSyncCubit extends Cubit<CloudSyncState> {
     emit(CloudSyncLoaded(statuses));
   }
 
-  /// Enables cloud backup for a vault: builds zip, uploads, updates meta.
-  Future<void> enableBackup(String folderName, CloudAuthState authState) async {
+  Future<void> enableBackup(Vault vault, CloudAuthState authState) async {
     if (authState is! CloudAuthSignedIn) {
-      _updateStatus(folderName, error: 'Not signed in to cloud.');
+      _updateStatus(vault.folderName, error: 'Not signed in to cloud.');
       return;
     }
 
-    _updateStatus(folderName, syncing: true, error: null);
+    _updateStatus(vault.folderName, syncing: true, error: null);
 
     try {
-      final zipBytes = await _backupRepo.buildExportZip(folderName);
-      await _backupRepo.uploadBackup(folderName, zipBytes);
+      final zipBytes = await _backupRepo.buildExportZip(vault.folderName);
+      await _backupRepo.uploadBackup(vault.folderName, zipBytes);
+
+      await _backupRepo.registerBackup(
+        vaultId: vault.folderName,
+        vaultName: vault.name,
+      );
 
       final now = DateTime.now();
       await _vaultRepo.updateCloudMeta(
-        folderName,
+        vault.folderName,
         cloudEnabled: true,
         lastSyncedAt: now,
       );
 
       _updateStatus(
-        folderName,
+        vault.folderName,
         enabled: true,
         syncing: false,
         lastSyncedAt: now,
       );
     } catch (e) {
-      _updateStatus(folderName, syncing: false, error: e.toString());
+      _updateStatus(vault.folderName, syncing: false, error: e.toString());
     }
   }
 
-  /// Syncs (re-uploads) a vault that's already enabled.
-  Future<void> syncNow(String folderName, CloudAuthState authState) async {
+  Future<void> syncNow(Vault vault, CloudAuthState authState) async {
     if (authState is! CloudAuthSignedIn) {
-      _updateStatus(folderName, error: 'Not signed in to cloud.');
+      _updateStatus(vault.folderName, error: 'Not signed in to cloud.');
       return;
     }
 
-    _updateStatus(folderName, syncing: true, error: null);
+    _updateStatus(vault.folderName, syncing: true, error: null);
 
     try {
-      final zipBytes = await _backupRepo.buildExportZip(folderName);
-      await _backupRepo.updateBackup(folderName, zipBytes);
+      final zipBytes = await _backupRepo.buildExportZip(vault.folderName);
+      await _backupRepo.updateBackup(vault.folderName, zipBytes);
+
+      await _backupRepo.updateBackupMetadata(
+        vaultId: vault.folderName,
+        vaultName: vault.name,
+      );
 
       final now = DateTime.now();
       await _vaultRepo.updateCloudMeta(
-        folderName,
+        vault.folderName,
         cloudEnabled: true,
         lastSyncedAt: now,
       );
 
-      _updateStatus(folderName, syncing: false, lastSyncedAt: now);
+      _updateStatus(vault.folderName, syncing: false, lastSyncedAt: now);
     } catch (e) {
-      _updateStatus(folderName, syncing: false, error: e.toString());
+      _updateStatus(vault.folderName, syncing: false, error: e.toString());
     }
   }
 
-  /// Disables cloud backup: deletes remote zip, flips flag off.
   Future<void> disableBackup(String folderName) async {
     _updateStatus(folderName, syncing: true, error: null);
 
@@ -102,7 +103,6 @@ class CloudSyncCubit extends Cubit<CloudSyncState> {
         lastSyncedAt: null,
       );
     } catch (e) {
-      // Remote delete might fail if backup doesn't exist — still flip the flag
       await _vaultRepo.updateCloudMeta(folderName, cloudEnabled: false);
       _updateStatus(
         folderName,
@@ -114,15 +114,29 @@ class CloudSyncCubit extends Cubit<CloudSyncState> {
     }
   }
 
-  /// Restores a vault from cloud backup.
-  /// Returns the new vault name.
-  Future<String> restoreFromCloud(String folderName) async {
-    final zipBytes = await _backupRepo.downloadBackup(folderName);
-    // Use same folderName for restore (overwrite) or generate new UUID for merge
-    // For safety, we generate a new folderName to avoid collision
-    final newFolderName = const Uuid().v4();
-    final vaultName = await _backupRepo.restoreBackup(zipBytes, newFolderName);
-    return vaultName;
+  Future<String> restoreFromCloud(VaultBackupInfo backup) async {
+    try {
+      final zipBytes = await _backupRepo.downloadBackup(backup.id);
+
+      final vaultName = await _backupRepo.restoreBackup(zipBytes, backup.id);
+
+      await _vaultRepo.updateCloudMeta(
+        backup.id,
+        cloudEnabled: true,
+        lastSyncedAt: backup.updatedAt,
+      );
+
+      _updateStatus(
+        backup.id,
+        enabled: true,
+        syncing: false,
+        lastSyncedAt: backup.updatedAt,
+      );
+
+      return vaultName;
+    } catch (e) {
+      throw StateError('Cloud restore failed: $e');
+    }
   }
 
   void _updateStatus(

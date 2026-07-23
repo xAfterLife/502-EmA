@@ -132,7 +132,7 @@ class _EnableSection extends StatelessWidget {
           value: false,
           onChanged: (_) {
             context.read<CloudSyncCubit>().enableBackup(
-              vault.folderName,
+              vault,
               context.read<CloudAuthCubit>().state,
             );
           },
@@ -211,7 +211,7 @@ class _EnabledSection extends StatelessWidget {
                 ? null
                 : () {
                     context.read<CloudSyncCubit>().syncNow(
-                      vault.folderName,
+                      vault,
                       context.read<CloudAuthCubit>().state,
                     );
                   },

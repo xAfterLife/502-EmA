@@ -1,17 +1,11 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:min_vault/features/cloud_backup/vault_backup_info.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Handles building, uploading, and downloading per-vault backup zips.
-///
-/// Each zip is self-contained: vault files + auth blob (wrapped DEK + verifier + salt).
-/// Zero-knowledge: Supabase only ever stores ciphertext + a wrapped key blob.
-/// Without the master password, the blob is useless server-side.
-///
 /// Storage layout: `backups/{userId}/{folderName}.zip`
 class BackupRepository {
   BackupRepository({required this._client});
@@ -21,11 +15,6 @@ class BackupRepository {
 
   String? get _userId => _client.auth.currentUser?.id;
 
-  /// Builds a per-vault export zip containing:
-  /// - All vault files (meta.json, items_meta.json, *.crypt files)
-  /// - `auth_blob.json` with wrapped DEK, verifier, and salt
-  ///
-  /// Pure ciphertext in, ciphertext out — nothing plaintext touches the zip.
   Future<Uint8List> buildExportZip(String folderName) async {
     final appDir = await getApplicationDocumentsDirectory();
     final vaultDir = Directory('${appDir.path}/vaults/$folderName');
@@ -36,7 +25,6 @@ class BackupRepository {
 
     final archive = Archive();
 
-    // Add all vault files (already encrypted)
     await for (final entity in vaultDir.list()) {
       if (entity is File) {
         final fileName = entity.uri.pathSegments.last;
@@ -48,7 +36,6 @@ class BackupRepository {
     return Uint8List.fromList(ZipEncoder().encode(archive));
   }
 
-  /// Uploads a per-vault zip to Supabase Storage.
   Future<void> uploadBackup(String folderName, Uint8List zipBytes) async {
     final userId = _userId;
     if (userId == null) throw StateError('Not signed in to cloud.');
@@ -67,7 +54,7 @@ class BackupRepository {
     }
   }
 
-    Future<void> updateBackup(String folderName, Uint8List zipBytes) async {
+  Future<void> updateBackup(String folderName, Uint8List zipBytes) async {
     final userId = _userId;
     if (userId == null) throw StateError('Not signed in to cloud.');
 
@@ -85,7 +72,6 @@ class BackupRepository {
     }
   }
 
-  /// Downloads a per-vault zip from Supabase Storage.
   Future<Uint8List> downloadBackup(String folderName) async {
     final userId = _userId;
     if (userId == null) throw StateError('Not signed in to cloud.');
@@ -101,6 +87,7 @@ class BackupRepository {
     if (await vaultDir.exists()) {
       throw StateError('Vault directory already exists.');
     }
+
     await vaultDir.create(recursive: true);
 
     final archive = ZipDecoder().decodeBytes(zipBytes);
@@ -120,25 +107,75 @@ class BackupRepository {
     return vaultName ?? newFolderName;
   }
 
-  /// Deletes a per-vault backup from Supabase Storage.
-  Future<void> deleteBackup(String folderName) async {
+  Future<void> registerBackup({
+    required String vaultId,
+    required String vaultName,
+  }) async {
     final userId = _userId;
-    if (userId == null) throw StateError('Not signed in to cloud.');
 
-    final path = '$userId/$folderName.zip';
-    await _client.storage.from(_bucketName).remove([path]);
+    if (userId == null) {
+      throw StateError('Not signed in to cloud.');
+    }
+
+    await _client.from('vault_backups').upsert({
+      'user_id': userId,
+      'vault_id': vaultId,
+      'vault_name': vaultName,
+    });
   }
 
-  /// Lists all vault backups available in the cloud for the current user.
-  /// Returns folder names (without .zip extension).
-  Future<List<String>> listBackups() async {
+  Future<void> updateBackupMetadata({
+    required String vaultId,
+    required String vaultName,
+  }) async {
     final userId = _userId;
-    if (userId == null) throw StateError('Not signed in to cloud.');
 
-    final objects = await _client.storage.from(_bucketName).list(path: userId);
-    return objects
-        .where((obj) => obj.name.endsWith('.zip'))
-        .map((obj) => obj.name.replaceAll('.zip', ''))
+    if (userId == null) {
+      throw StateError('Not signed in to cloud.');
+    }
+
+    await _client
+        .from('vault_backups')
+        .update({
+          'vault_name': vaultName,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('user_id', userId)
+        .eq('vault_id', vaultId);
+  }
+
+  /// Deletes a per-vault backup from Supabase Storage.
+  Future<void> deleteBackup(String vaultId) async {
+    final userId = _userId;
+
+    if (userId == null) {
+      throw StateError('Not signed in to cloud.');
+    }
+
+    await _client.storage.from(_bucketName).remove(['$userId/$vaultId.zip']);
+
+    await _client
+        .from('vault_backups')
+        .delete()
+        .eq('user_id', userId)
+        .eq('vault_id', vaultId);
+  }
+
+  Future<List<VaultBackupInfo>> listBackups() async {
+    final userId = _userId;
+
+    if (userId == null) {
+      throw StateError('Not signed in to cloud.');
+    }
+
+    final result = await _client
+        .from('vault_backups')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at');
+
+    return (result as List)
+        .map((json) => VaultBackupInfo.fromJson(json))
         .toList();
   }
 

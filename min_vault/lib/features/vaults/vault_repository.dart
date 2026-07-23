@@ -43,6 +43,10 @@ class VaultRepository {
         name: meta['name'] as String? ?? folderName,
         folderName: folderName,
         itemCount: count,
+        cloudEnabled: meta['cloudEnabled'] as bool? ?? false,
+        lastSyncedAt: meta['lastSyncedAt'] != null
+            ? DateTime.parse(meta['lastSyncedAt'] as String)
+            : null,
       );
     } else {
       return null;
@@ -69,7 +73,6 @@ class VaultRepository {
     return Vault(name: name, folderName: folderName, itemCount: 0);
   }
 
-  /// Updates the cloud-related fields in a vault's meta.json.
   Future<void> updateCloudMeta(
     String folderName, {
     required bool cloudEnabled,

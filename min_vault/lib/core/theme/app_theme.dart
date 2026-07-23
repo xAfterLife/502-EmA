@@ -60,6 +60,7 @@ abstract final class AppTheme {
   static const double spL = 24;
   static const double spXL = 32;
   static const double spXXL = 48;
+  static const double tileHeight = 56;
 
   // Radien
   static const double radiusS = 8;
