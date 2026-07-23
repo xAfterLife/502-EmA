@@ -785,7 +785,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
       );
 
       if (sourceFilePath != null && mounted) {
-          Navigator.pop(context);
+        Navigator.pop(context);
       } else {
         if (mounted) Navigator.pop(context);
       }
