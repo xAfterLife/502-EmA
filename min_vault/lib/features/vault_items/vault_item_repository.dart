@@ -82,6 +82,7 @@ class VaultItemRepository {
           type: ItemType.values.byName(map['type'] as String),
           hasThumbnail: map['hasThumbnail'] as bool? ?? false,
           createdAt: DateTime.parse(map['createdAt'] as String),
+          fileName: map['fileName'] as String?,
         ),
       );
     }
@@ -90,6 +91,7 @@ class VaultItemRepository {
     return items;
   }
 
+  /// Decrypts a thumbnail in a background isolate.
   Future<Uint8List?> loadThumbnail(String id) async {
     final dir = await _vaultDir;
     final thumbFile = File('${dir.path}/$id.thumb.crypt');
@@ -104,6 +106,8 @@ class VaultItemRepository {
     required String title,
     required ItemType type,
     required Object value,
+    String? sourceFilePath,
+    String? fileName,
   }) async {
     final dir = await _vaultDir;
     if (!await dir.exists()) await dir.create(recursive: true);
@@ -149,9 +153,17 @@ class VaultItemRepository {
       'type': type.name,
       'hasThumbnail': hasThumbnail,
       'createdAt': DateTime.now().toUtc().toIso8601String(),
+      'fileName': ?fileName,
     });
 
     await metaFile.writeAsString(json.encode(existing));
+
+    if (sourceFilePath != null) {
+      final source = File(sourceFilePath);
+      if (await source.exists()) {
+        await source.delete();
+      }
+    }
   }
 
   Future<void> deleteItem(String id) async {
@@ -190,11 +202,20 @@ class VaultItemRepository {
     );
   }
 
-  Future<File> revealFile(String id) async {
+  Future<File> revealFile(String id, {String? fileName}) async {
     final bytes = await _readValueBytes(id);
     final tempDir = await getTemporaryDirectory();
+
+    String extension = '';
+    if (fileName != null) {
+      final dotIndex = fileName.lastIndexOf('.');
+      if (dotIndex >= 0) {
+        extension = fileName.substring(dotIndex); // includes the dot
+      }
+    }
+
     final tempFile = File(
-      '${tempDir.path}/${id}_${DateTime.now().millisecondsSinceEpoch}',
+      '${tempDir.path}/${id}_${DateTime.now().millisecondsSinceEpoch}$extension',
     );
     return tempFile.writeAsBytes(bytes);
   }

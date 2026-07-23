@@ -43,9 +43,17 @@ class VaultItemsCubit extends Cubit<VaultItemsState> {
     required String title,
     required ItemType type,
     required Object value,
+    String? sourceFilePath,
+    String? fileName,
   }) async {
     try {
-      await _repo.addItem(title: title, type: type, value: value);
+      await _repo.addItem(
+        title: title,
+        type: type,
+        value: value,
+        sourceFilePath: sourceFilePath,
+        fileName: fileName,
+      );
       await loadItems();
     } catch (e) {
       emit(ItemsError(e.toString()));
@@ -68,5 +76,6 @@ class VaultItemsCubit extends Cubit<VaultItemsState> {
   Future<void> updateText(String id, String newValue) =>
       _repo.updateText(id, newValue);
 
-  Future<File> revealFile(String id) => _repo.revealFile(id);
+  Future<File> revealFile(String id, {String? fileName}) =>
+      _repo.revealFile(id, fileName: fileName);
 }

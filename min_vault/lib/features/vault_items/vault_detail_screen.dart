@@ -12,6 +12,8 @@ import 'package:min_vault/features/vault_items/vault_item.dart';
 import 'package:min_vault/features/vault_items/vault_item_repository.dart';
 import 'package:min_vault/features/vault_items/vault_items_cubit.dart';
 import 'package:min_vault/features/vault_items/vault_items_state.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class VaultDetailScreenWrapper extends StatelessWidget {
   const VaultDetailScreenWrapper({required this.vault, super.key});
@@ -121,8 +123,20 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
         ),
       ),
       builder: (_) => _AddItemSheet(
-        onSubmit: ({required title, required type, required value}) =>
-            cubit.addItem(title: title, type: type, value: value),
+        onSubmit:
+            ({
+              required title,
+              required type,
+              required value,
+              sourceFilePath,
+              fileName,
+            }) => cubit.addItem(
+              title: title,
+              type: type,
+              value: value,
+              sourceFilePath: sourceFilePath,
+              fileName: fileName,
+            ),
       ),
     );
   }
@@ -171,6 +185,9 @@ class _ItemTileState extends State<_ItemTile> {
     ItemType.file => Icons.insert_drive_file_outlined,
   };
 
+  bool get _isExportable =>
+      widget.item.type == ItemType.image || widget.item.type == ItemType.file;
+
   Future<void> _onTap(BuildContext context) async {
     final cubit = context.read<VaultItemsCubit>();
     try {
@@ -189,8 +206,7 @@ class _ItemTileState extends State<_ItemTile> {
             );
           }
         case ItemType.file:
-          // Support for generic type files not yet added.
-          break;
+          await _shareItem(context);
       }
     } catch (e) {
       if (context.mounted) {
@@ -204,6 +220,41 @@ class _ItemTileState extends State<_ItemTile> {
       }
     }
   }
+
+  Future<void> _shareItem(BuildContext context) async {
+    final cubit = context.read<VaultItemsCubit>();
+    try {
+      final file = await cubit.revealFile(
+        widget.item.id,
+        fileName: widget.item.fileName,
+      );
+      if (!context.mounted) return;
+
+      final shareFileName =
+          widget.item.fileName ??
+          '${widget.item.title}${_defaultExtension(widget.item.type)}';
+
+      SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path, name: shareFileName)]),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not export item: $e'),
+            backgroundColor: AppTheme.dangerColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  String _defaultExtension(ItemType type) => switch (type) {
+    ItemType.image => '.jpg',
+    ItemType.file => '',
+    ItemType.password || ItemType.note => '',
+  };
 
   void _showRevealSheet(BuildContext context, String value) {
     showModalBottomSheet(
@@ -250,14 +301,13 @@ class _ItemTileState extends State<_ItemTile> {
 
   @override
   Widget build(BuildContext context) {
-    final isFileType = widget.item.type == ItemType.file;
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(AppTheme.radiusL),
       ),
       child: InkWell(
-        onTap: isFileType ? null : () => _onTap(context),
+        onTap: () => _onTap(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusL),
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.spM),
@@ -287,22 +337,18 @@ class _ItemTileState extends State<_ItemTile> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isFileType
-                        ? AppTheme.textSecondaryColor
-                        : AppTheme.textPrimaryColor,
+                    color: AppTheme.textPrimaryColor,
                   ),
                 ),
               ),
-              if (isFileType)
-                Padding(
-                  padding: const EdgeInsets.only(right: AppTheme.spS),
-                  child: Text(
-                    'Coming soon',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppTheme.textSecondaryColor,
-                    ),
+              if (_isExportable)
+                IconButton(
+                  onPressed: () => _shareItem(context),
+                  icon: Icon(
+                    Icons.share_outlined,
+                    color: AppTheme.textSecondaryColor,
                   ),
+                  tooltip: 'Share',
                 ),
               IconButton(
                 onPressed: () => _confirmDelete(context),
@@ -462,6 +508,8 @@ class _AddItemSheet extends StatefulWidget {
     required String title,
     required ItemType type,
     required Object value,
+    String? sourceFilePath,
+    String? fileName,
   })
   onSubmit;
 
@@ -501,6 +549,13 @@ class _AddItemSheetState extends State<_AddItemSheet> {
     }
   }
 
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result != null && result.files.isNotEmpty) {
+      setState(() => _pickedFile = result.files.single);
+    }
+  }
+
   Future<void> _submit() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -509,6 +564,9 @@ class _AddItemSheetState extends State<_AddItemSheet> {
     }
 
     final Object value;
+    String? sourceFilePath;
+    String? fileName;
+
     if (_isTextType) {
       if (_valueController.text.isEmpty) {
         setState(() => _error = 'Value cannot be empty.');
@@ -518,10 +576,12 @@ class _AddItemSheetState extends State<_AddItemSheet> {
     } else {
       final path = _pickedFile?.path;
       if (path == null) {
-        setState(() => _error = 'Choose an image first.');
+        setState(() => _error = 'Choose a file first.');
         return;
       }
       value = File(path);
+      sourceFilePath = path;
+      fileName = _pickedFile!.name;
     }
 
     setState(() {
@@ -530,8 +590,28 @@ class _AddItemSheetState extends State<_AddItemSheet> {
     });
 
     try {
-      await widget.onSubmit(title: title, type: _selectedType!, value: value);
-      if (mounted) Navigator.pop(context);
+      await widget.onSubmit(
+        title: title,
+        type: _selectedType!,
+        value: value,
+        sourceFilePath: sourceFilePath,
+        fileName: fileName,
+      );
+
+      if (sourceFilePath != null && mounted) {
+        final prefs = getIt<SharedPreferences>();
+        final alwaysDelete = prefs.getBool('delete_original_always') ?? false;
+
+        if (alwaysDelete) {
+          Navigator.pop(context);
+        } else {
+          final shouldDelete = await _showDeleteOriginalDialog(context);
+          if (shouldDelete == true) {}
+          if (mounted) Navigator.pop(context);
+        }
+      } else {
+        if (mounted) Navigator.pop(context);
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -540,6 +620,73 @@ class _AddItemSheetState extends State<_AddItemSheet> {
         });
       }
     }
+  }
+
+  Future<bool?> _showDeleteOriginalDialog(BuildContext context) async {
+    var dontAskAgain = false;
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Delete Original?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'The original file has already been imported into the vault. '
+                'Do you want to delete the original file from your device?',
+              ),
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () => setDialogState(() => dontAskAgain = !dontAskAgain),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: dontAskAgain,
+                        onChanged: (v) =>
+                            setDialogState(() => dontAskAgain = v ?? false),
+                        activeColor: AppTheme.accentColor,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text("Don't ask again"),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Keep',
+                style: TextStyle(color: AppTheme.textPrimaryColor),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (dontAskAgain) {
+                  final prefs = getIt<SharedPreferences>();
+                  await prefs.setBool('delete_original_always', true);
+                }
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: AppTheme.dangerColor),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -642,10 +789,18 @@ class _AddItemSheetState extends State<_AddItemSheet> {
           )
         else
           OutlinedButton.icon(
-            onPressed: _pickImage,
-            icon: const Icon(Icons.image_outlined, color: AppTheme.accentColor),
+            onPressed: _selectedType == ItemType.image ? _pickImage : _pickFile,
+            icon: Icon(
+              _selectedType == ItemType.image
+                  ? Icons.image_outlined
+                  : Icons.insert_drive_file_outlined,
+              color: AppTheme.accentColor,
+            ),
             label: Text(
-              _pickedFile?.name ?? 'Choose Image',
+              _pickedFile?.name ??
+                  (_selectedType == ItemType.image
+                      ? 'Choose Image'
+                      : 'Choose File'),
               style: TextStyle(color: AppTheme.textPrimaryColor),
             ),
           ),
@@ -716,11 +871,10 @@ class _TypePicker extends StatelessWidget {
           label: 'Image',
           onTap: () => onSelected(ItemType.image),
         ),
-        const _TypeOption(
+        _TypeOption(
           icon: Icons.insert_drive_file_outlined,
           label: 'File',
-          enabled: false,
-          disabledLabel: 'Coming soon',
+          onTap: () => onSelected(ItemType.file),
         ),
       ],
     );
@@ -728,13 +882,9 @@ class _TypePicker extends StatelessWidget {
 }
 
 class _TypeOption extends StatelessWidget {
-  const _TypeOption({
-    required this.icon,
-    required this.label,
-    this.onTap,
-    this.enabled = true,
-    this.disabledLabel,
-  });
+  const _TypeOption({required this.icon, required this.label, this.onTap})
+    : enabled = true,
+      disabledLabel = null;
 
   final IconData icon;
   final String label;
