@@ -54,32 +54,57 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
       backgroundColor: AppTheme.backgroundColour,
       appBar: AppBar(title: Text(widget.vault.name)),
       body: SafeArea(
-        child: BlocBuilder<VaultItemsCubit, VaultItemsState>(
-          builder: (context, state) => switch (state) {
-            ItemsInitial() => const SizedBox.shrink(),
-            ItemsLoading() => const Center(child: CircularProgressIndicator()),
-            ItemsError(:final message) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.spM),
-                child: Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppTheme.dangerColor),
+        child: Column(
+          children: [
+            Expanded(
+              child: BlocBuilder<VaultItemsCubit, VaultItemsState>(
+                builder: (context, state) => switch (state) {
+                  ItemsInitial() => const SizedBox.shrink(),
+                  ItemsLoading() => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  ItemsError(:final message) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppTheme.spM),
+                      child: Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppTheme.dangerColor),
+                      ),
+                    ),
+                  ),
+                  ItemsLoaded(:final items, :final thumbnails) =>
+                    items.isEmpty
+                        ? const _EmptyState()
+                        : _ItemList(items: items, thumbnails: thumbnails),
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.spM),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showAddItemSheet(context),
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    minimumSize: const Size.fromHeight(56),
+                    backgroundColor: AppTheme.accentColor,
+                    foregroundColor: AppTheme.onAccentColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text(
+                    'Add Item',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ),
-            ItemsLoaded(:final items, :final thumbnails) =>
-              items.isEmpty
-                  ? const _EmptyState()
-                  : _ItemList(items: items, thumbnails: thumbnails),
-          },
+          ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddItemSheet(context),
-        backgroundColor: AppTheme.accentColor,
-        foregroundColor: AppTheme.onAccentColor,
-        child: const Icon(Icons.add_rounded),
       ),
     );
   }
@@ -112,12 +137,7 @@ class _ItemList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.spM,
-        AppTheme.spM,
-        AppTheme.spM,
-        AppTheme.spXXL + AppTheme.spL,
-      ),
+      padding: const EdgeInsets.all(AppTheme.spM),
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -426,7 +446,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + to add your first item.',
+            'Tap "Add Item" to get started.',
             style: TextStyle(color: AppTheme.textSecondaryColor),
           ),
         ],
