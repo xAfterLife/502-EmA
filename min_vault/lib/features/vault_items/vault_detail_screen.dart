@@ -14,7 +14,6 @@ import 'package:min_vault/features/vault_items/vault_item_repository.dart';
 import 'package:min_vault/features/vault_items/vault_items_cubit.dart';
 import 'package:min_vault/features/vault_items/vault_items_state.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class VaultDetailScreenWrapper extends StatelessWidget {
   const VaultDetailScreenWrapper({required this.vault, super.key});
@@ -786,16 +785,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
       );
 
       if (sourceFilePath != null && mounted) {
-        final prefs = getIt<SharedPreferences>();
-        final alwaysDelete = prefs.getBool('delete_original_always') ?? false;
-
-        if (alwaysDelete) {
           Navigator.pop(context);
-        } else {
-          final shouldDelete = await _showDeleteOriginalDialog(context);
-          if (shouldDelete == true) {}
-          if (mounted) Navigator.pop(context);
-        }
       } else {
         if (mounted) Navigator.pop(context);
       }
@@ -807,73 +797,6 @@ class _AddItemSheetState extends State<_AddItemSheet> {
         });
       }
     }
-  }
-
-  Future<bool?> _showDeleteOriginalDialog(BuildContext context) async {
-    var dontAskAgain = false;
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Delete Original?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'The original file has already been imported into the vault. '
-                'Do you want to delete the original file from your device?',
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => setDialogState(() => dontAskAgain = !dontAskAgain),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Checkbox(
-                        value: dontAskAgain,
-                        onChanged: (v) =>
-                            setDialogState(() => dontAskAgain = v ?? false),
-                        activeColor: AppTheme.accentColor,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text("Don't ask again"),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(
-                'Keep',
-                style: TextStyle(color: AppTheme.textPrimaryColor),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (dontAskAgain) {
-                  final prefs = getIt<SharedPreferences>();
-                  await prefs.setBool('delete_original_always', true);
-                }
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext, true);
-                }
-              },
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: AppTheme.dangerColor),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override

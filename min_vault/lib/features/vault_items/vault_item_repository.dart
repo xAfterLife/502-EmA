@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 import 'package:min_vault/core/crypto/encryption_service.dart';
+import 'package:min_vault/core/di/injection.dart';
 import 'package:min_vault/features/vault_items/vault_item.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:image/image.dart' as img;
 
@@ -158,7 +160,11 @@ class VaultItemRepository {
 
     await metaFile.writeAsString(json.encode(existing));
 
-    if (sourceFilePath != null) {
+    final prefs = getIt<SharedPreferences>();
+    final alwaysDelete = prefs.getBool('delete_original_always') ?? false;
+
+    //TODO: file_picker only returns the Cached Copy not real path - would be over the time Budget to add the Channels now.
+    if (alwaysDelete && sourceFilePath != null) {
       final source = File(sourceFilePath);
       if (await source.exists()) {
         await source.delete();
