@@ -1,5 +1,5 @@
-# min_vault
-
+# MinVault
+![Logo](/min_vault/assets/icon/min_vault.png)
 A secure Vault for your Files
 
 ## Installationsanweisung 
