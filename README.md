@@ -3,3 +3,7 @@
 Alle Dateien zur Abgabe befinden sich im [Abgabeverzeichniss](/Abgabe/)
 ## App
 Source-Code und Installationsanweißungen sind auch im [Anwendungsverzeichniss](/min_vault/) zu finden
+### Voraussetzungen 
+Flutter SDK: >= 3.44.0 (stable) 
+Dart SDK: >= 3.12.0 (in der Flutter-SDK-Version enthalten) 
+Git 
